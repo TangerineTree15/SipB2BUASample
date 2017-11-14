@@ -29,7 +29,10 @@ import javax.sip.message.Response;
 import org.apache.log4j.Logger;
 
 import com.naturaltel.sip.Injection;
+import com.naturaltel.sip.component.ConnectCalleeUsers;
+import com.naturaltel.sip.component.OriginCalleeUser;
 import com.naturaltel.sip.core.manager.B2BUAManager;
+import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.StorageManager;
 
 public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
@@ -57,15 +60,17 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
     public B2BUAManagerImpl() {
     		super();
     		logger = Logger.getLogger(B2BUAManagerImpl.class);
+    		
     }
     
 	@Override
-	public void init() {
-		super.init();
+	public void init(CallManager callManager) {
+		super.init(callManager);
 		setSipRequestListener(this);
 		setSipResponsetListener(this);
 	}
 
+	
 	@Override
 	public void doInvite(RequestEvent requestEvent, ServerTransaction serverTransaction) {
 		try {
@@ -85,22 +90,38 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			ToHeader to = (ToHeader) request.getHeader(ToHeader.NAME);
 			SipURI toUri = (SipURI) to.getAddress().getURI();
 			
-			//找出 target	//TODO Tang 交給 callManager
-			SipURI target = storageManager.getRegistrar(toUri.getUser());
+			//呼叫 callManager
+			OriginCalleeUser originCalleeUser = new OriginCalleeUser(toUri);
+			ConnectCalleeUsers connectCalleeUsers = callManager.getConnectCallee(originCalleeUser);
 			
-			if(target == null) {
-				logger.debug("User " + toUri + " is not registered.");
-				throw new RuntimeException("User not registered " + toUri);
+			ArrayList<SipURI> calleeUriArray = connectCalleeUsers.getCalleeUri();
+			if(calleeUriArray!=null && calleeUriArray.size()>0 && connectCalleeUsers!=null) {
+				switch(connectCalleeUsers.getConnectType()) {
+				case ConferenceRoom:
+					//TODO Tang
+					break;
+				case SequenceRing:
+					//TODO Tang
+					break;
+				case ParallelRing:
+					//TODO Tang
+					break;
+				case ConnectOne:
+				default:
+					//準備另一個 Invite 送出 //TODO Tang 要改成 array, 及交給 callManager
+					ClientTransaction clientTransaction = createClientTransaction(fromUri, calleeUriArray.get(0), request.getRawContent());
+					clientTransaction.sendRequest();
+					
+					//將 Transaction、Dialog 互存
+					storageManager.saveInviteTransaction(serverTransaction, clientTransaction);
+					break;
+					
+				}
 			} else {
-				logger.debug("User " + toUri + " is registered.");
-				logger.debug("Target " + target);
-				//準備另一個 Invite 送出 //TODO Tang 要改成 array, 及交給 callManager
-				ClientTransaction clientTransaction = createClientTransaction(fromUri, target, request.getRawContent());
-				clientTransaction.sendRequest();
-				
-				//將 Transaction、Dialog 互存
-				storageManager.saveInviteTransaction(serverTransaction, clientTransaction);
+				logger.debug("There is not callee." + toUri);
+				throw new RuntimeException("There is not callee." + toUri);
 			}
+			
 		} catch (Exception ex) {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();

@@ -8,7 +8,7 @@ public class ServerBrokerSIP {
 //		new B2BUA().init();
 		
 		B2BUAManager b2BUAManager = Injection.provideB2BUAManager();
-		b2BUAManager.init();
+		b2BUAManager.init(Injection.provideCallManager());
 		
 	}
 }

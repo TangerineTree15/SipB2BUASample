@@ -6,6 +6,10 @@ import javax.sip.ClientTransaction;
 import javax.sip.Dialog;
 import javax.sip.ServerTransaction;
 
+/**
+ * 儲存 Dialog, ServerTransaction clientTransactionArray 互存內容
+ * get/set/clear/add/remove
+ */
 public class TransactionStorage {
 	Dialog serverDialog;
 	Dialog clientDialog;

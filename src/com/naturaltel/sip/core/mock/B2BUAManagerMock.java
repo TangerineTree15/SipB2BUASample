@@ -6,6 +6,7 @@ import javax.sip.ResponseEvent;
 import javax.sip.ServerTransaction;
 
 import com.naturaltel.sip.core.manager.B2BUAManager;
+import com.naturaltel.sip.core.manager.CallManager;
 
 public class B2BUAManagerMock extends SipManagerMock implements B2BUAManager {
 
@@ -23,7 +24,7 @@ public class B2BUAManagerMock extends SipManagerMock implements B2BUAManager {
     }
     
 	@Override
-	public void init() {
+	public void init(CallManager callManager) {
 		// TODO Auto-generated method stub
 		
 	}

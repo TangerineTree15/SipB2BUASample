@@ -29,6 +29,7 @@ import org.apache.log4j.PatternLayout;
 
 import com.naturaltel.sip.core.SipRequestListener;
 import com.naturaltel.sip.core.SipResponsetListener;
+import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.SipManager;
 
 import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
@@ -44,6 +45,8 @@ public class SipManagerImpl implements SipManager {
 	protected AddressFactory addressFactory;
 	protected MessageFactory messageFactory;
 	protected HeaderFactory headerFactory;
+	
+	protected CallManager callManager;
 
 	//TODO Tang 2017/11/06 改使用 config 取得 
 	private static final String myAddress = "192.168.31.106";	//"127.0.0.1";
@@ -77,7 +80,7 @@ public class SipManagerImpl implements SipManager {
     }
 
 	@Override
-	public void init() {
+	public void init(CallManager callManager) {
 		System.out.println("init");
 		
 		try {
@@ -89,6 +92,7 @@ public class SipManagerImpl implements SipManager {
 			ListeningPoint listeningPoint = sipStack.createListeningPoint(myAddress, myPort, transport);
 			sipProvider = createSipProvider(sipStack, listeningPoint);
 			sipProvider.addSipListener(this);
+			this.callManager = callManager;
 		} catch (Exception ex) {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
