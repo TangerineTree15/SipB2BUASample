@@ -123,7 +123,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			}
 			
 		} catch (Exception ex) {
-			logger.error(ex.getMessage());
+			logger.error(ex.toString());
 			ex.printStackTrace();
 		}
 		
@@ -413,7 +413,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			return inviteTid;
 
 		} catch (Exception ex) {
-			logger.error(ex.getMessage());
+			logger.error(ex.toString());
 			ex.printStackTrace();
 		}
 		return null;
