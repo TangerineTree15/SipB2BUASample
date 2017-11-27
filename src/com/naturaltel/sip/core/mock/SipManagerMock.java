@@ -8,6 +8,7 @@ import javax.sip.TimeoutEvent;
 import javax.sip.TransactionTerminatedEvent;
 
 import com.naturaltel.sip.core.manager.CallManager;
+import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.SipManager;
 
 public class SipManagerMock implements SipManager {
@@ -26,7 +27,7 @@ public class SipManagerMock implements SipManager {
     }
     
 	@Override
-	public void init(CallManager callManager) {
+	public void init(CallManager callManager, ConfigurationManager configurationManager) {
 		// TODO Auto-generated method stub
 		
 	}

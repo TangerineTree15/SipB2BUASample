@@ -33,6 +33,7 @@ import com.naturaltel.sip.component.ConnectCalleeUsers;
 import com.naturaltel.sip.component.OriginCalleeUser;
 import com.naturaltel.sip.core.manager.B2BUAManager;
 import com.naturaltel.sip.core.manager.CallManager;
+import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.StorageManager;
 
 public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
@@ -64,8 +65,8 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
     }
     
 	@Override
-	public void init(CallManager callManager) {
-		super.init(callManager);
+	public void init(CallManager callManager, ConfigurationManager configurationManager) {
+		super.init(callManager, configurationManager);
 		setSipRequestListener(this);
 		setSipResponsetListener(this);
 	}

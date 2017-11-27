@@ -20,6 +20,7 @@ public class CallManagerImpl implements CallManager {
 	
 	
 	private static CallManager callManager;
+	
     public static CallManager getInstance() {
         if (callManager == null) {
             synchronized (CallManager.class) {
@@ -48,23 +49,19 @@ public class CallManagerImpl implements CallManager {
 			//For 模擬 IMS call 測試，用sipp 發話，轉給另一個 sip call (已Register)
 			target = storageManager.getRegistrar("wind347");
 //			target = storageManager.getRegistrar("472753");
-			logger.debug("Target " + target);
-			connectCalleeUsers.setConnectType(ConnectType.ConnectOne);
-			connectCalleeUsers.clearCalleeUri();
-			connectCalleeUsers.addCalleeUri(target);
-			
 		} else if(target == null) {
 			logger.debug("User " + toUri + " is not registered.");
 //			throw new RuntimeException("User not registered " + toUri);
 			target = toUri;	//直接使用進來的 toUri
 		} else {
 			logger.debug("User " + toUri + " is registered.");
-			logger.debug("Target " + target);
-			
-			connectCalleeUsers.setConnectType(ConnectType.ConnectOne);
-			connectCalleeUsers.clearCalleeUri();
-			connectCalleeUsers.addCalleeUri(target);
 		}
+		
+		logger.debug("Target " + target);
+		connectCalleeUsers.setConnectType(ConnectType.ConnectOne);
+		connectCalleeUsers.clearCalleeUri();
+		connectCalleeUsers.addCalleeUri(target);
+		
 		return connectCalleeUsers;
 	}
     

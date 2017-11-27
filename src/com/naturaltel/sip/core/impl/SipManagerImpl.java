@@ -27,9 +27,11 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
+import com.naturaltel.sip.component.ListeningPointConfig;
 import com.naturaltel.sip.core.SipRequestListener;
 import com.naturaltel.sip.core.SipResponsetListener;
 import com.naturaltel.sip.core.manager.CallManager;
+import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.SipManager;
 
 import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
@@ -47,10 +49,11 @@ public class SipManagerImpl implements SipManager {
 	protected HeaderFactory headerFactory;
 	
 	protected CallManager callManager;
+	protected ConfigurationManager configurationManager;
 
 	//TODO Tang 2017/11/06 改使用 config 取得 
-	private static final String myAddress = "192.168.31.106";	//"127.0.0.1";
-	private static final int myPort = 5082;
+//	private static final String myAddress = "192.168.31.106";	//"127.0.0.1";
+//	private static final int myPort = 5082;
 	public String transport = "udp";//"ws";
 	
 	
@@ -80,7 +83,7 @@ public class SipManagerImpl implements SipManager {
     }
 
 	@Override
-	public void init(CallManager callManager) {
+	public void init(CallManager callManager, ConfigurationManager configurationManager) {
 		System.out.println("init");
 		
 		try {
@@ -89,10 +92,14 @@ public class SipManagerImpl implements SipManager {
 			Properties properties = createProperties();
 			SipStack sipStack = createSipStack(sipFactory, properties);
 			createSomeFactory(sipFactory);
-			ListeningPoint listeningPoint = sipStack.createListeningPoint(myAddress, myPort, transport);
+			ListeningPointConfig listeningPointConfig = configurationManager.getListeningPointConfig();
+			logger.debug(listeningPointConfig.toString());
+			transport = listeningPointConfig.localTransport;
+			ListeningPoint listeningPoint = sipStack.createListeningPoint(listeningPointConfig.localAddress, listeningPointConfig.localPort, listeningPointConfig.localTransport);
 			sipProvider = createSipProvider(sipStack, listeningPoint);
 			sipProvider.addSipListener(this);
 			this.callManager = callManager;
+			this.configurationManager = configurationManager;
 		} catch (Exception ex) {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
