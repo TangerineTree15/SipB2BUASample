@@ -84,6 +84,13 @@ public class B2BUAManagerMock extends SipManagerMock implements B2BUAManager {
 		
 	}
 
+	
+	@Override
+	public void doPrack(RequestEvent requestEvent, ServerTransaction serverTransaction) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	@Override
 	public void doInDialogRequest(RequestEvent requestEvent, ServerTransaction serverTransaction) {
 		// TODO Auto-generated method stub
@@ -91,7 +98,13 @@ public class B2BUAManagerMock extends SipManagerMock implements B2BUAManager {
 	}
 
 	@Override
-	public void doInvite200Response(ResponseEvent responseEvent, ClientTransaction clientTransaction) {
+	public void doInviteResponseWithSDP(ResponseEvent responseEvent, ClientTransaction clientTransaction) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void do100Rel(ResponseEvent responseEvent, ClientTransaction clientTransaction) {
 		// TODO Auto-generated method stub
 		
 	}

@@ -13,6 +13,7 @@ public interface SipRequestListener {
 	void doBye(RequestEvent requestEvent, ServerTransaction serverTransaction);
 	void doInfo(RequestEvent requestEvent, ServerTransaction serverTransaction);
 	void doUpdate(RequestEvent requestEvent, ServerTransaction serverTransaction);
+	void doPrack(RequestEvent requestEvent, ServerTransaction serverTransaction);
 	/** Do the any in dialog request */
 	void doInDialogRequest(RequestEvent requestEvent, ServerTransaction serverTransaction);
 }

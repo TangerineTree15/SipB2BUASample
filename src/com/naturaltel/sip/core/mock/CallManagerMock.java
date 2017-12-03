@@ -40,6 +40,7 @@ public class CallManagerMock extends CallManagerImpl implements CallManager  {
 		logger.debug("toUri.getUser() = " + toUser);
 
 		SipURI target = toUri;	//直接使用進來的 toUri
+		//TODO 改 target ip port (使用: proxy ip:port)
 		logger.debug("Target " + target);
 		
 		connectCalleeUsers.setConnectType(ConnectType.ConnectOne);

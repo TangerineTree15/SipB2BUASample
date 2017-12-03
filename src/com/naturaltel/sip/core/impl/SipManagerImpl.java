@@ -3,6 +3,7 @@ package com.naturaltel.sip.core.impl;
 import java.util.Properties;
 
 import javax.sip.ClientTransaction;
+import javax.sip.Dialog;
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
 import javax.sip.ListeningPoint;
@@ -18,6 +19,7 @@ import javax.sip.TimeoutEvent;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.address.AddressFactory;
 import javax.sip.header.HeaderFactory;
+import javax.sip.header.RequireHeader;
 import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -135,6 +137,8 @@ public class SipManagerImpl implements SipManager {
 				if(sipRequestListener!=null) sipRequestListener.doInfo(requestEvent, serverTransaction);
 			} else if (request.getMethod().equals(Request.UPDATE)) {
 				if(sipRequestListener!=null) sipRequestListener.doUpdate(requestEvent, serverTransaction);
+			} else if (request.getMethod().equals(Request.PRACK)) {
+				if(sipRequestListener!=null) sipRequestListener.doPrack(requestEvent, serverTransaction);
 			} else {
 				if(sipRequestListener!=null) sipRequestListener.doInDialogRequest(requestEvent, serverTransaction);
 			}
@@ -147,17 +151,53 @@ public class SipManagerImpl implements SipManager {
 	@Override
 	public void processResponse(ResponseEvent responseEvent) {
 		try {
+			logger.debug("processResponse");
 			Response response = responseEvent.getResponse();
 			ClientTransaction clientTransaction = responseEvent.getClientTransaction();
-			int statusCode = response.getStatusCode();
-			logger.debug("Response: " + clientTransaction.getRequest().getMethod() + ", StatusCode=" + statusCode);
+			Dialog dialog = responseEvent.getDialog();
+			if(dialog!=null) {
+				logger.debug("getDialogId" + dialog.getDialogId());
+				logger.debug("getCallId" + dialog.getCallId().getCallId());
+			} else {
+				logger.debug("dialog==null");
+			}
 			
-			if(statusCode == Response.OK && clientTransaction.getRequest().getMethod().equals(Request.INVITE)) {
-				if(sipResponsetListener!=null) sipResponsetListener.doInvite200Response(responseEvent, clientTransaction);
+			int statusCode = response.getStatusCode();
+			logger.debug("StatusCode=" + statusCode);
+			
+			if(clientTransaction==null) {
+				logger.debug("clientTransaction==null");
+				//TODO 要檢討這裡寫法是否正確？
+				return;
+			} else {
+				logger.debug("Response Method=" + clientTransaction.getRequest().getMethod() + ", DialogId=" + responseEvent.getDialog().getDialogId() + ", StatusCode=" + statusCode);				
+			}
+			
+			//TODO 拆
+			if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())
+					&& (statusCode == Response.OK) ) {
+				if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
+			} else if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())
+						&& (statusCode == Response.SESSION_PROGRESS) ) {
+					if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
+	                RequireHeader requireHeader = (RequireHeader) response.getHeader(RequireHeader.NAME);
+	                if ( requireHeader.getOptionTag().equalsIgnoreCase("100rel")) {
+	                		if(sipResponsetListener!=null) sipResponsetListener.do100Rel(responseEvent, clientTransaction);
+	                }
 			} else {
 				ServerTransaction serverTransaction = (ServerTransaction) clientTransaction.getApplicationData();
-				if(serverTransaction==null) logger.debug("serverTransaction==null");
+				if(serverTransaction==null) {
+					logger.warn("serverTransaction==null");
+					return;
+				}
 				Response otherResponse = messageFactory.createResponse(statusCode, serverTransaction.getRequest());
+				
+//				logger.debug("serverTransaction" + " getMethod=" + serverTransaction.getRequest().getMethod());
+//				logger.debug("serverTransaction" + " DialogId=" + serverTransaction.getDialog().getDialogId());				
+//				logger.debug("clientTransaction" + " getMethod=" + clientTransaction.getRequest().getMethod());
+//				logger.debug("clientTransaction" + " DialogId=" + clientTransaction.getDialog().getDialogId());
+				
+				logger.debug("sendResponse");
 				serverTransaction.sendResponse(otherResponse);
 			}
 		} catch (Exception ex) {

@@ -2,6 +2,8 @@ package com.naturaltel.sip.core.impl;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sip.ClientTransaction;
@@ -12,8 +14,10 @@ import javax.sip.ResponseEvent;
 import javax.sip.ServerTransaction;
 import javax.sip.SipException;
 import javax.sip.SipProvider;
+import javax.sip.Transaction;
 import javax.sip.address.Address;
 import javax.sip.address.SipURI;
+import javax.sip.header.AllowHeader;
 import javax.sip.header.CSeqHeader;
 import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
@@ -21,6 +25,7 @@ import javax.sip.header.ContentTypeHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
 import javax.sip.header.MaxForwardsHeader;
+import javax.sip.header.RequireHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
@@ -83,20 +88,22 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 				logger.debug("getNewServerTransaction");
 				serverTransaction = sipProvider.getNewServerTransaction(request);
 			}
-			Dialog dialog = serverTransaction.getDialog();
-			logger.debug("DialogId=" + dialog.getDialogId());
+			displayTransaction(serverTransaction);
+
 
 			FromHeader from = (FromHeader) request.getHeader(FromHeader.NAME);
 			SipURI fromUri = (SipURI) from.getAddress().getURI();	
 			ToHeader to = (ToHeader) request.getHeader(ToHeader.NAME);
 			SipURI toUri = (SipURI) to.getAddress().getURI();
 			
-			//呼叫 callManager
+			
+			//呼叫 callManager 取得要 Connect Callee Users
 			OriginCalleeUser originCalleeUser = new OriginCalleeUser(toUri);
 			ConnectCalleeUsers connectCalleeUsers = callManager.getConnectCallee(originCalleeUser);
 			
 			ArrayList<SipURI> calleeUriArray = connectCalleeUsers.getCalleeUri();
 			if(calleeUriArray!=null && calleeUriArray.size()>0 && connectCalleeUsers!=null) {
+				logger.debug("ConnectType=" + connectCalleeUsers.getConnectType());
 				switch(connectCalleeUsers.getConnectType()) {
 				case ConferenceRoom:
 					//TODO Tang
@@ -109,12 +116,18 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 					break;
 				case ConnectOne:
 				default:
+					logger.debug("fromUri=" + fromUri);
+					logger.debug("calleeUriArray.get(0)=" + calleeUriArray.get(0));
+					logger.debug("request.getRawContent() length=" + request.getRawContent().length);
 					//準備另一個 Invite 送出 //TODO Tang 要改成 array, 及交給 callManager
-					ClientTransaction clientTransaction = createClientTransaction(fromUri, calleeUriArray.get(0), request.getRawContent());
+					ClientTransaction clientTransaction = createClientTransaction(request, fromUri, calleeUriArray.get(0), request.getRawContent());
+					
+					logger.debug("clientTransaction.sendRequest()");
 					clientTransaction.sendRequest();
 					
 					//將 Transaction、Dialog 互存
 					storageManager.saveInviteTransaction(serverTransaction, clientTransaction);
+					displayTransaction(serverTransaction, clientTransaction);
 					break;
 					
 				}
@@ -183,13 +196,13 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 		logger.debug("User=" + fromUri.getUser() + ", contactUri=" + contactUri);
 		logger.debug("registrar.size=" + storageManager.getRegistrar().size());
 		//回覆 200 OK
-		sendResponse(Response.OK, request);
+		sendResponse(Response.OK, request, serverTransaction);
 	}
 
 	@Override
 	public void dosSubscribe(RequestEvent requestEvent, ServerTransaction serverTransaction) {
 		Request request = requestEvent.getRequest();
-		sendResponse(Response.OK, request);
+		sendResponse(Response.OK, request, serverTransaction);
 	}
 
 	@Override
@@ -212,7 +225,21 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 	@Override
 	public void doUpdate(RequestEvent requestEvent, ServerTransaction serverTransaction) {
 		// TODO Auto-generated method stub
-		
+		doInDialogRequest(requestEvent, serverTransaction);
+	}
+	
+	@Override
+	public void doPrack(RequestEvent requestEvent, ServerTransaction serverTransaction) {
+		//TODO 用 sipp 沒收到 PRACK
+		logger.debug("doPrack");
+		try {
+			Request prack = requestEvent.getRequest();
+			Response prackOk = messageFactory.createResponse(Response.OK, prack);
+			serverTransaction.sendResponse(prackOk);
+		} catch (Exception ex) {
+			logger.error(ex.getMessage());
+			ex.printStackTrace();
+		}
 	}
 
 	@Override
@@ -222,12 +249,14 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			SipProvider sipProvider = (SipProvider) requestEvent.getSource();
 			Request request = requestEvent.getRequest();
 			Dialog dialog = serverTransaction.getDialog();
+			displayTransaction(serverTransaction);
 
 			
 			Dialog otherDialog = storageManager.loadTransaction(dialog).getOtherDialog(dialog);
 			Request otherRequest = otherDialog.createRequest(request.getMethod());
 			ClientTransaction clientTransaction = sipProvider.getNewClientTransaction(otherRequest);
 			storageManager.saveOtherTransaction(serverTransaction, clientTransaction);
+			displayTransaction(serverTransaction, clientTransaction);
 			
 			//送出
 			otherDialog.sendRequest(clientTransaction);
@@ -239,8 +268,9 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 	}
 
 	@Override
-	public void doInvite200Response(ResponseEvent responseEvent, ClientTransaction clientTransaction) {
+	public void doInviteResponseWithSDP(ResponseEvent responseEvent, ClientTransaction clientTransaction) {
 		try {
+			logger.debug("doInviteResponseWithSDP");
 			Response response = responseEvent.getResponse();
 			String ipAddress = sipProvider.getListeningPoint(transport).getIPAddress();
 			int port = sipProvider.getListeningPoint(transport).getPort();
@@ -249,28 +279,54 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			if(clientTransaction!=null) {
 				serverTransaction = (ServerTransaction) clientTransaction.getApplicationData();
 			} else {
-				logger.debug("clientTransaction==null");
-				logger.debug("getDialog==null: " + (responseEvent.getDialog()==null));
+				logger.warn("clientTransaction==null");
+				logger.warn("getDialog==null: " + (responseEvent.getDialog()==null));
 				return;
 			}
+			displayTransaction(serverTransaction, clientTransaction);
 			Response otherResponse = messageFactory.createResponse(response.getStatusCode(), serverTransaction.getRequest());
 			
 			//contact Header
-			Address address = addressFactory.createAddress("B2BUA <sip:"+ ipAddress + ":" + port + ">");
+			FromHeader from = (FromHeader) response.getHeader(FromHeader.NAME);
+			SipURI formSipURI = (SipURI) from.getAddress().getURI();
+			String fromName = formSipURI.getUser();
+			Address address = addressFactory.createAddress("sip:"+fromName+"@"+ipAddress+":" + port);
+			
+
 			ContactHeader contactHeader = headerFactory.createContactHeader(address);
-			response.addHeader(contactHeader);
+			otherResponse.addHeader(contactHeader);
 			
 			//ToHeader
-			ToHeader toHeader = (ToHeader) otherResponse.getHeader(ToHeader.NAME);
-			if(toHeader.getTag() == null) toHeader.setTag(new Long(counter.getAndIncrement()).toString());
-			otherResponse.addHeader(contactHeader);
+			ToHeader otherToHeader = (ToHeader) otherResponse.getHeader(ToHeader.NAME);
+			ToHeader toHeader = (ToHeader) response.getHeader(ToHeader.NAME);
+			//if(toHeader.getTag() == null) toHeader.setTag(new Long(counter.getAndIncrement()).toString());
+			if(otherToHeader.getTag() == null) otherToHeader.setTag(toHeader.getTag());
+			logger.debug("toHeader.getTag():" + toHeader.getTag());
+			logger.debug("otherToHeader.getTag():" + otherToHeader.getTag());
 			
 			//ContentTypeHeader
 			ContentTypeHeader contentTypeHeader = headerFactory.createContentTypeHeader("application", "sdp");
 			otherResponse.setContent(response.getContent(), contentTypeHeader);
 			
+			String[] hhh = {"Content-Length", "Via", "From", "To", "Call-ID", "CSeq", "Contact", "Content-Type"};
+			Header extensionHeader;
+			ListIterator<String> headers = response.getHeaderNames();
+			while(headers.hasNext()) {
+				String headerName = headers.next();
+				if(!Arrays.asList(hhh).contains(headerName)) {
+					logger.debug("ResponseHeader: " + headerName +"="+ response.getHeader(headerName));
+					extensionHeader = response.getHeader(headerName);
+					otherResponse.addHeader(extensionHeader);
+				}
+			}
+
+			
+			
 			//send Response
+			displayTransaction(serverTransaction, clientTransaction);
+			logger.debug("send Response");
 			serverTransaction.sendResponse(otherResponse);
+			
 		} catch (Exception ex) {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
@@ -278,11 +334,35 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 		
 		
 	}
+	
+	@Override
+	public void do100Rel(ResponseEvent responseEvent, ClientTransaction clientTransaction) {
+		logger.debug("do100Rel");
+		//do100Rel, Send PRACK
+		
+		try {
+			Response response = (Response) responseEvent.getResponse();
+	        RequireHeader requireHeader = (RequireHeader) response.getHeader(RequireHeader.NAME);
+	        SipProvider sipProvider = (SipProvider) responseEvent.getSource();
+	        if ( requireHeader.getOptionTag().equalsIgnoreCase("100rel")) {
+	            Dialog dialog = clientTransaction.getDialog();
+	            Request prackRequest = dialog.createPrack(response);
+	            ClientTransaction ct = sipProvider.getNewClientTransaction(prackRequest);
+	            logger.debug("Send PRACK");
+	            dialog.sendRequest(ct);
+	        }
+		} catch (Exception ex) {
+			logger.error(ex.getMessage());
+			ex.printStackTrace();
+		}
+        
+	}	
 
 	
 	
-	private void sendResponse(int responseCode, Request request) {
+	private void sendResponse(int responseCode, Request request, ServerTransaction serverTransaction) {
 		try {
+			displayTransaction(serverTransaction);
 			Response response = this.messageFactory.createResponse(responseCode, request);
 			ContactHeader contactHeader = (ContactHeader) request.getHeader(ContactHeader.NAME);
 			int expires = 3600;
@@ -297,6 +377,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
             }
             
 			ServerTransaction newServerTransaction = sipProvider.getNewServerTransaction(request);
+			displayTransaction(newServerTransaction);
 			newServerTransaction.sendResponse(response);
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -306,7 +387,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 	
 	
 	//TODO Tang 這段 method 要客製化修改
-	public ClientTransaction createClientTransaction(SipURI formSipURI, SipURI destination, byte[] rawContents) {
+	public ClientTransaction createClientTransaction(Request oriRequest, SipURI formSipURI, SipURI destination, byte[] rawContents) {
 		try {
 			String fromName = formSipURI.getUser();
 //			String fromSipAddress = formSipURI.getHost();
@@ -314,7 +395,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 
 //			String toSipAddress = "there.com";
 //			String toUser = "Target";				//TODO Tang 要修
-			String toDisplayName = "Target";			//TODO Tang 要修
+//			String toDisplayName = "Target";			//TODO Tang 要修
 
 			String ipAddress = sipProvider.getListeningPoint(transport).getIPAddress();
 			int port = sipProvider.getListeningPoint(transport).getPort();
@@ -327,7 +408,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			// create To Header
 //			SipURI toAddress = addressFactory.createSipURI(toUser, toSipAddress);
 			Address toNameAddress = addressFactory.createAddress(destination);
-			toNameAddress.setDisplayName(toDisplayName);
+//			toNameAddress.setDisplayName(toDisplayName);
 			ToHeader toHeader = headerFactory.createToHeader(toNameAddress, null);
 
 			// create Request URI
@@ -372,52 +453,122 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 
 			// Add the contact address.
 			contactAddress.setDisplayName(fromName);
-
 			ContactHeader contactHeader = headerFactory.createContactHeader(contactAddress);
 			request.addHeader(contactHeader);
-
-			// You can add extension headers of your own making
-			// to the outgoing SIP request.
-			// Add the extension header.
-			Header extensionHeader = headerFactory.createHeader("My-Header",	"my header value");	//TODO Tang 要修
-			request.addHeader(extensionHeader);
-
-//			String sdpData = "v=0\r\n"													//TODO Tang 要修
-//					+ "o=4855 13760799956958020 13760799956958020"
-//					+ " IN IP4  129.6.55.78\r\n" + "s=mysession session\r\n"
-//					+ "p=+46 8 52018010\r\n" + "c=IN IP4  129.6.55.78\r\n"
-//					+ "t=0 0\r\n" + "m=audio 6022 RTP/AVP 0 4 18\r\n"
-//					+ "a=rtpmap:0 PCMU/8000\r\n" + "a=rtpmap:4 G723/8000\r\n"
-//					+ "a=rtpmap:18 G729A/8000\r\n" + "a=ptime:20\r\n";
-//			byte[] contents = sdpData.getBytes();
-
-//			request.setContent(contents, contentTypeHeader);
+			
+			// Add contentTypeHeader
 			request.setContent(rawContents, contentTypeHeader);
-			// You can add as many extension headers as you
-			// want.
+			
+			try {
+				//Add the extension header.
+				Header extensionHeader = oriRequest.getHeader("Accept-Contact");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("P-Asserted-Identity");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("P-Visited-Network-ID");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("P-Access-Network-Info");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("Min-Se");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("Session-Expires");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("P-Charging-Vector");
+				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("P-Early-Media");
+				request.addHeader(extensionHeader);
+//				extensionHeader = oriRequest.getHeader("P-Preferred-Service");
+//				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("Accept");
+				request.addHeader(extensionHeader);
+				
+				extensionHeader = headerFactory.createHeader("Reject-Contact", "*;+g.3gpp.ics=\"server\"");		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
+				extensionHeader = headerFactory.createHeader("User-Agent", "SBCore");		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
+				extensionHeader = headerFactory.createHeader("P-Charging-Function-Addresses", "ccf=\"aaa://cdf1.ims.mnc001.mcc466.3gppnetwork.org;transport=tcp\";ccf=\"aaa://cdf2.ims.mnc001.mcc466.3gppnetwork.org;transport=tcp\"");		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
+				extensionHeader = headerFactory.createHeader("P-Called-Party-ID", "<sip:+886903507449@ims.mnc001.mcc466.3gppnetwork.org>");		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
+				extensionHeader = headerFactory.createHeader("Feature-Caps", "*;+g.3gpp.srvcc;+g.3gpp.srvcc-alerting;+g.3gpp.remote-leg-info");		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
+				extensionHeader = headerFactory.createHeader("Recv-Info", "g.3gpp.state-and-event");		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
+				extensionHeader = headerFactory.createHeader("Session-ID", "b9d0eacffe00ebd5dbc6f7df87c82cde");		//TODO Tang 要修
+				request.addHeader(extensionHeader);
+			} catch(Exception e) {
+				
+			}
+			
+//			extensionHeader = headerFactory.createHeader("Supported", "timer, 100rel, replaces, precondition, histinfo, tdialog, replaces");		//TODO Tang 要修
+//			request.addHeader(extensionHeader);
+			
+			String methods = Request.REGISTER + ", " + Request.REFER + ", " + Request.NOTIFY + ", " 
+					+ Request.SUBSCRIBE + ", " + Request.UPDATE + ", " + Request.PRACK + ", " 
+					+ Request.INFO + ", " + Request.INVITE + ", " + Request.ACK + ", "
+					+ Request.OPTIONS + ", " + Request.CANCEL + ", " + Request.BYE;
+	        AllowHeader allowHeader = headerFactory.createAllowHeader(methods);
+	        request.addHeader(allowHeader);
 
-			extensionHeader = headerFactory.createHeader("My-Other-Header", "my new header value ");		//TODO Tang 要修
-			request.addHeader(extensionHeader);
-
-			Header callInfoHeader = headerFactory.createHeader("Call-Info","<http://www.antd.nist.gov>");	//TODO Tang 要修
-			request.addHeader(callInfoHeader);
+			
+//			// You can add extension headers of your own making
+//			// to the outgoing SIP request.
+//			// Add the extension header.
+//			Header extensionHeader = headerFactory.createHeader("My-Header",	"my header value");	//TODO Tang 要修
+//			request.addHeader(extensionHeader);
+//
+//
+//			// You can add as many extension headers as you
+//			// want.
+//
+//			extensionHeader = headerFactory.createHeader("My-Other-Header", "my new header value ");		//TODO Tang 要修
+//			request.addHeader(extensionHeader);
+//
+//			Header callInfoHeader = headerFactory.createHeader("Call-Info","<http://www.antd.nist.gov>");	//TODO Tang 要修
+//			request.addHeader(callInfoHeader);
 
 			// Create the client transaction.
-			ClientTransaction inviteTid = sipProvider.getNewClientTransaction(request);
-
-			logger.debug("inviteTid = " + inviteTid);
+			ClientTransaction clientTransaction = sipProvider.getNewClientTransaction(request);
+			displayTransaction(clientTransaction);
 
 			// send the request out.
 
 //			inviteTid.sendRequest();
 			
-			return inviteTid;
+			return clientTransaction;
 
 		} catch (Exception ex) {
 			logger.error(ex.toString());
 			ex.printStackTrace();
 		}
 		return null;
+	}
+	
+	private void displayTransaction(Transaction transaction1, Transaction transaction2) {
+		displayTransaction(transaction1);
+		displayTransaction(transaction2);
+	}
+	private void displayTransaction(Transaction transaction) {
+		try {
+			String transactionFlag = "Transaction";
+			if(transaction!=null) {
+				if(transaction instanceof ClientTransaction) {
+					transactionFlag = "ClientTransaction";
+				} else if(transaction instanceof ServerTransaction) {
+					transactionFlag = "ServerTransaction";
+				}
+				logger.debug(transactionFlag + " getMethod=" + transaction.getRequest().getMethod());
+				logger.debug(transactionFlag + " DialogId=" + transaction.getDialog().getDialogId());
+				logger.debug(transactionFlag + " getCallId=" + transaction.getDialog().getCallId());
+				logger.debug(transactionFlag + " getBranchId=" + transaction.getBranchId());
+				logger.debug(transactionFlag + " getState=" + transaction.getState());
+			} else {
+				logger.debug(transactionFlag + " is null");
+			}
+		} catch (Exception ex) {
+			logger.error(ex.getMessage());
+			ex.printStackTrace();
+		}
 	}
 	
 }
