@@ -39,7 +39,7 @@ public class CallManagerImpl implements CallManager {
 	@Override
 	public ConnectCalleeUsers getConnectCallee(OriginCalleeUser originCalleeUser) {
 		ConnectCalleeUsers connectCalleeUsers = new ConnectCalleeUsers();
-		SipURI toUri = originCalleeUser.getCalleeUri();
+		SipURI toUri = (SipURI) originCalleeUser.getCalleeUri();	//TODO SipURI or TelURI?
 		//找出 target (從register 清單找)
 		SipURI target = storageManager.getRegistrar(toUri.getUser());
 		

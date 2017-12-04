@@ -2,14 +2,14 @@ package com.naturaltel.sip.component;
 
 import java.util.ArrayList;
 
-import javax.sip.address.SipURI;
+import javax.sip.address.URI;
 
 /**
  * Connect 受話資料 
  */
 public class ConnectCalleeUsers {
 	ConnectType connectType;
-	ArrayList<SipURI> calleeUriArray = new ArrayList<SipURI>();
+	ArrayList<URI> calleeUriArray = new ArrayList<URI>();
 
 	public ConnectCalleeUsers() {
 		
@@ -23,19 +23,19 @@ public class ConnectCalleeUsers {
 		this.connectType = connectType;
 	}
 	
-	public ArrayList<SipURI> getCalleeUri() {
+	public ArrayList<URI> getCalleeUri() {
 		synchronized (ConnectCalleeUsers.class) {
 			return calleeUriArray;
 		}
 	}
 
-	public void setCalleeUri(ArrayList<SipURI> calleeUriArray) {
+	public void setCalleeUri(ArrayList<URI> calleeUriArray) {
 		synchronized (ConnectCalleeUsers.class) {
 			this.calleeUriArray = calleeUriArray;
 		}
 	}
 	
-	public void addCalleeUri(SipURI calleeUri) {
+	public void addCalleeUri(URI calleeUri) {
 		synchronized (ConnectCalleeUsers.class) {
 			this.calleeUriArray.add(calleeUri);
 		}
@@ -43,11 +43,11 @@ public class ConnectCalleeUsers {
 	
 	public void clearCalleeUri() {
 		synchronized (ConnectCalleeUsers.class) {
-			this.calleeUriArray = new ArrayList<SipURI>();
+			this.calleeUriArray = new ArrayList<URI>();
 		}
 	}
 	
-	public void removeCalleeUri(SipURI calleeUri) {
+	public void removeCalleeUri(URI calleeUri) {
 		synchronized (ConnectCalleeUsers.class) {
 			this.calleeUriArray.remove(calleeUri);
 		}

@@ -156,8 +156,8 @@ public class SipManagerImpl implements SipManager {
 			ClientTransaction clientTransaction = responseEvent.getClientTransaction();
 			Dialog dialog = responseEvent.getDialog();
 			if(dialog!=null) {
-				logger.debug("getDialogId" + dialog.getDialogId());
-				logger.debug("getCallId" + dialog.getCallId().getCallId());
+				logger.debug("getDialogId=" + dialog.getDialogId());
+				logger.debug("getCallId=" + dialog.getCallId().getCallId());
 			} else {
 				logger.debug("dialog==null");
 			}

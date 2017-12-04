@@ -1,6 +1,6 @@
 package com.naturaltel.sip.core.mock;
 
-import javax.sip.address.SipURI;
+import javax.sip.address.URI;
 
 import org.apache.log4j.Logger;
 
@@ -34,12 +34,11 @@ public class CallManagerMock extends CallManagerImpl implements CallManager  {
 	@Override
 	public ConnectCalleeUsers getConnectCallee(OriginCalleeUser originCalleeUser) {
 		ConnectCalleeUsers connectCalleeUsers = new ConnectCalleeUsers();
-		SipURI toUri = originCalleeUser.getCalleeUri();
+		URI toUri = originCalleeUser.getCalleeUri();
 
-		String toUser = toUri.getUser();
-		logger.debug("toUri.getUser() = " + toUser);
+		logger.debug("toUri = " + toUri.toString());
 
-		SipURI target = toUri;	//直接使用進來的 toUri
+		URI target = toUri;	//直接使用進來的 toUri
 		//TODO 改 target ip port (使用: proxy ip:port)
 		logger.debug("Target " + target);
 		

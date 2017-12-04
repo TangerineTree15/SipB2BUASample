@@ -29,7 +29,7 @@ public class TransactionStorage {
 			ClientTransaction clientTransaction) {
 		super();
 		this.serverDialog = serverDialog;
-		this.clientDialog = clientDialog;
+		this.clientDialog = clientDialog;			//TODO clientDialog 應該會有好幾個，要修改
 		this.serverTransaction = serverTransaction;
 		addClientTransaction(clientTransaction);
 	}

@@ -59,8 +59,8 @@ public class StorageManagerImpl implements StorageManager {
 	
 		clientTransaction.setApplicationData(serverTransaction);
 		serverTransaction.setApplicationData(clientTransaction);
-		serverTransaction.getDialog().setApplicationData(transactionStorage);
-		clientTransaction.getDialog().setApplicationData(transactionStorage);
+		serverDialog.setApplicationData(transactionStorage);
+		clientDialog.setApplicationData(transactionStorage);
 	}
 	@Override
 	public void saveOtherTransaction(ServerTransaction serverTransaction, ClientTransaction clientTransaction) {
