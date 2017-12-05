@@ -437,16 +437,26 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 
 			ViaHeader viaH = (ViaHeader) oriRequest.getHeader(ViaHeader.NAME);
 			logger.debug("viaH.getHost=" + viaH.getHost() + ", viaH.getPort()=" + viaH.getPort());
+			logger.debug(oriRequest.getHeader("P-Visited-Network-ID"));
+			
 			
 			// create Request URI
 			URI requestURI;
 			if(destination.isSipURI()) {
 				requestURI = destination;
 			} else {
-//				String defaultDomainName = sipProp.getProperty("net.java.sip.communicator.sip.DEFAULT_DOMAIN_NAME");
-//				String defaultDomainName = "ims.mnc002.mcc466.3gppnetwork.org";	//TODO for test
-//				String callee = "sip:" + ((TelURL) destination).getPhoneNumber() + "@" + defaultDomainName;
-				String callee = "sip:" + ((TelURL) destination).getPhoneNumber() + "@" + viaH.getHost();
+				//sip:+886944300377@ims.mnc002.mcc466.3gppnetwork.org;user=phone
+				String defaultDomainName;
+//				defaultDomainName = sipProp.getProperty("net.java.sip.communicator.sip.DEFAULT_DOMAIN_NAME");
+//				defaultDomainName = "ims.mnc002.mcc466.3gppnetwork.org";	//TODO for test
+//				defaultDomainName = viaH.getHost();
+				defaultDomainName = formSipURI.getHost();
+//				defaultDomainName = oriRequest.getHeader("P-Visited-Network-ID").toString();
+				
+				
+				TelURL requestUrl = ((TelURL) destination);
+				String callee = "sip:+" + requestUrl.getPhoneNumber() + "@" + defaultDomainName + ";user=phone";
+				logger.debug(callee);
 				requestURI = addressFactory.createURI(callee);
 			}
 			
@@ -507,10 +517,15 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 				request.addHeader(extensionHeader);
 				extensionHeader = oriRequest.getHeader("P-Early-Media");
 				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("P-Preferred-Service");
-//				request.addHeader(extensionHeader);
+				extensionHeader = oriRequest.getHeader("P-Preferred-Service");
+				request.addHeader(extensionHeader);
 				extensionHeader = oriRequest.getHeader("Accept");
 				request.addHeader(extensionHeader);
+				
+				String routeString = "<sip:"+viaH.getHost()+ ":" + viaH.getPort()+";lr>";
+//				String routeString = "<sip:192.168.31.106:56789;lr>";
+				extensionHeader = headerFactory.createHeader("Route", routeString);		//TODO Tang 要修
+				request.addHeader(extensionHeader); 
 				
 				extensionHeader = headerFactory.createHeader("Reject-Contact", "*;+g.3gpp.ics=\"server\"");		//TODO Tang 要修
 				request.addHeader(extensionHeader); 
