@@ -21,26 +21,18 @@ public class Injection {
 		MOCK, NORMAL
 	}
 	
-	static ENV SipManagerEnv = ENV.NORMAL;
 	static ENV B2BUAManagerEnv = ENV.NORMAL;
 	static ENV StorageManagerEnv = ENV.NORMAL;
-	static ENV CallManagerEnv = ENV.MOCK;
+	static ENV CallMoManagerEnv = ENV.MOCK;
+	static ENV CallMtManagerEnv = ENV.MOCK;
 	static ENV ConfigurationManagerEnv = ENV.NORMAL;
 	
-	
-    public static SipManager provideSipManager() {
-        if (SipManagerEnv == ENV.MOCK) {
-            return SipManagerMock.getInstance();
-        } else {
-            return SipManagerImpl.getInstance();
-        }
-    }
-    
-    public static B2BUAManager provideB2BUAManager() {
+
+    public static B2BUAManager newB2BUAManager() {
         if (B2BUAManagerEnv == ENV.MOCK) {
-            return B2BUAManagerMock.getInstance();
+            return new B2BUAManagerMock();
         } else {
-            return B2BUAManagerImpl.getInstance();
+            return new B2BUAManagerImpl();
         }
     }
     
@@ -52,19 +44,27 @@ public class Injection {
         }
     }
     
-    public static CallManager provideCallManager() {
-        if (CallManagerEnv == ENV.MOCK) {
-            return CallManagerMock.getInstance();
+    public static CallManager newMoCallManager() {
+        if (CallMoManagerEnv == ENV.MOCK) {
+            return new CallManagerMock();
         } else {
-            return CallManagerImpl.getInstance();
+            return new CallManagerImpl();	//TODO 分mo/mt
         }
     }
     
-    public static ConfigurationManager provideConfigurationManager() {
-        if (ConfigurationManagerEnv == ENV.MOCK) {
-            return ConfigurationManagerMock.getInstance();
+    public static CallManager newMtCallManager() {
+        if (CallMtManagerEnv == ENV.MOCK) {
+            return new CallManagerMock();
         } else {
-            return ConfigurationManagerImpl.getInstance();
+            return new CallManagerImpl();	//TODO 分mo/mt
+        }
+    }
+    
+    public static ConfigurationManager newConfigurationManager() {
+        if (ConfigurationManagerEnv == ENV.MOCK) {
+            return new ConfigurationManagerMock();
+        } else {
+            return new ConfigurationManagerImpl();
         }
     }
 }

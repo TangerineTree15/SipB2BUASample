@@ -10,19 +10,19 @@ public class ServerBrokerSIP {
 //		new B2BUA().init();	//for B2BUA test
 		
 		//MoCall
-		CallManager moCallManager = Injection.provideCallManager();
-		ConfigurationManager moConfigurationManager = Injection.provideConfigurationManager();
-		moConfigurationManager.loadListeningPointConfig("./ListeningPointConfig.json");
+		CallManager moCallManager = Injection.newMoCallManager();
+		ConfigurationManager moConfigurationManager = Injection.newConfigurationManager();
+		moConfigurationManager.loadListeningPointConfig("./MOListeningPointConfig.json");
 		
-		B2BUAManager b2BUAManager = Injection.provideB2BUAManager();
-		b2BUAManager.init(moCallManager, moConfigurationManager);
+		B2BUAManager moB2BUAManager = Injection.newB2BUAManager();
+		moB2BUAManager.init(moCallManager, moConfigurationManager);
 		
 		//MTCall-1
-//		CallManager mtCallManager1 = Injection.provideMtCallManager();
-//		ConfigurationManager mtConfigurationManager1 = Injection.provideConfigurationManager();
+//		CallManager mtCallManager1 = Injection.newMtCallManager();
+//		ConfigurationManager mtConfigurationManager1 = Injection.newConfigurationManager();
 //		mtConfigurationManager1.loadListeningPointConfig("./MTListeningPointConfig1.json");
 //		
-//		B2BUAManager mtB2BUAManager1 = Injection.provideB2BUAManager();
+//		B2BUAManager mtB2BUAManager1 = Injection.newB2BUAManager();
 //		mtB2BUAManager1.init(mtCallManager1, mtConfigurationManager1);
 		
 		//MTCall-2

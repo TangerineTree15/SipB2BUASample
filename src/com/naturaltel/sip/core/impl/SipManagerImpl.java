@@ -36,6 +36,7 @@ import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.SipManager;
 
+import gov.nist.javax.sip.header.HeaderFactoryExt;
 import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
 public class SipManagerImpl implements SipManager {
@@ -89,14 +90,17 @@ public class SipManagerImpl implements SipManager {
 		System.out.println("init");
 		
 		try {
+			
 			createAppender();
 			SipFactory sipFactory = createSipFactory();
 			Properties properties = createProperties();
+			logger.debug("createSipStack");
 			SipStack sipStack = createSipStack(sipFactory, properties);
 			createSomeFactory(sipFactory);
 			ListeningPointConfig listeningPointConfig = configurationManager.getListeningPointConfig();
 			logger.debug(listeningPointConfig.toString());
 			transport = listeningPointConfig.localTransport;
+			//TODO 這邊要抽出，做多個 localAddress, localPort, addSipListener(mo, mt)
 			ListeningPoint listeningPoint = sipStack.createListeningPoint(listeningPointConfig.localAddress, listeningPointConfig.localPort, listeningPointConfig.localTransport);
 			sipProvider = createSipProvider(sipStack, listeningPoint);
 			sipProvider.addSipListener(this);
