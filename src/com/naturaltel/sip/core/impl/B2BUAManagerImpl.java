@@ -32,6 +32,7 @@ import javax.sip.header.RequireHeader;
 import javax.sip.header.RouteHeader;
 import javax.sip.header.SupportedHeader;
 import javax.sip.header.ToHeader;
+import javax.sip.header.UserAgentHeader;
 import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -495,15 +496,17 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 //			contactUrl.setPort(port);
 //			contactUrl.setLrParam();
 
-			// Create the contact name address.
-			SipURI contactURI = addressFactory.createSipURI(fromName, host);
-			contactURI.setPort(sipProvider.getListeningPoint(transport).getPort());
-			Address contactAddress = addressFactory.createAddress(contactURI);
+//			// Create the contact name address.
+//			SipURI contactURI = addressFactory.createSipURI(fromName, host);
+//			contactURI.setPort(sipProvider.getListeningPoint(transport).getPort());
+//			Address contactAddress = addressFactory.createAddress(contactURI);
+//
+//			// Add the contact address.
+//			contactAddress.setDisplayName(fromName);
+//			ContactHeader contactHeader = headerFactory.createContactHeader(contactAddress);
+//			request.addHeader(contactHeader);
+			
 
-			// Add the contact address.
-			contactAddress.setDisplayName(fromName);
-			ContactHeader contactHeader = headerFactory.createContactHeader(contactAddress);
-			request.addHeader(contactHeader);
 			
 			// Add contentTypeHeader
 			request.setContent(rawContents, contentTypeHeader);
@@ -513,6 +516,15 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			//Customized Header
 			Header extensionHeader;
 			try {
+				//Add ContactHeader
+				SipURI contactURI = addressFactory.createSipURI(fromName, host);
+				contactURI.setPort(sipProvider.getListeningPoint(transport).getPort());
+				Address contactAddress = addressFactory.createAddress(contactURI);
+				ContactHeader contactHeader = (ContactHeader)oriRequest.getHeader(ContactHeader.NAME);
+				contactHeader.setAddress(contactAddress);
+				request.addHeader(contactHeader);
+				
+				
 				//Add P-Served-User
 				PServedUserHeader pServedUserHeader = (PServedUserHeader)oriRequest.getHeader(PServedUser.NAME);
 				//logger.debug(((SIPHeader) pServedUserHeader).getHeaderName() + ": " + ((SIPHeader) pServedUserHeader).getHeaderValue());
@@ -529,6 +541,12 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			    ppsh.setSubserviceIdentifiers(pPreferredServiceHeader.getSubserviceIdentifiers().trim());
 			    request.addHeader(ppsh);
 
+			    //User-Agent: Ericsson MTAS -  CXP9020729/8 R6AF01
+			    ArrayList ua = new ArrayList();
+			    ua.add("SB");
+			    UserAgentHeader userAgentHeader = headerFactory.createUserAgentHeader(ua);
+			    request.addHeader(userAgentHeader);
+			    
 				ListIterator<SIPHeader> sipHeaders;
 				//Add Route
 				sipHeaders = oriRequest.getHeaders(RouteHeader.NAME);
@@ -589,6 +607,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 		     //copy other Headers
 			//TODO 修改 From -> FromHeader.NAME ... 等等
 	        String[] hhh = {FromHeader.NAME, "To", "Via", "Call-ID", "CSeq", "Max-Forwards", "Content-Type", "Content-Length", "Contact", 
+	        		
 	        		RouteHeader.NAME, PServedUserHeader.NAME, PPreferredService.NAME, 
 	        		AllowHeader.NAME, SupportedHeader.NAME, AcceptHeader.NAME, PAccessNetworkInfoHeader.NAME, PAssertedIdentityHeader.NAME, 
 	        		};

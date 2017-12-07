@@ -204,6 +204,11 @@ public class SipManagerImpl implements SipManager {
 //				logger.debug("clientTransaction" + " getMethod=" + clientTransaction.getRequest().getMethod());
 //				logger.debug("clientTransaction" + " DialogId=" + clientTransaction.getDialog().getDialogId());
 				
+				//Via: SIP/2.0/UDP 192.168.31.106:5060;branch=z9hG4bKc2d61beb22a93338cbba9090653ca864jaaaaaaiaaaaaawnxtvma3Zqkv7ypurf00zvinhamaaaaabqaaaacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqaaaaaa
+				//Via: SIP/2.0/UDP 192.168.31.106:5060;branch=z9hG4bKc2d61beb22a93338cbba9090653ca864jaaaaaaiaaaaaawnxtvma3Zqkv7ypurf00zvinhamaaaaabqaaaacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqaaaaaa,SIP/2.0/UDP 10.246.92.7:5160;branch=z9hG4bK1769563974-298846699
+				
+				
+				logger.debug(otherResponse);
 				logger.debug("sendResponse");
 				serverTransaction.sendResponse(otherResponse);
 			}
