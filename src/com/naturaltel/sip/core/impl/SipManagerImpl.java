@@ -186,10 +186,12 @@ public class SipManagerImpl implements SipManager {
 						&& (statusCode == Response.SESSION_PROGRESS) ) {
 					if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
 	                RequireHeader requireHeader = (RequireHeader) response.getHeader(RequireHeader.NAME);
-	                if ( requireHeader.getOptionTag().equalsIgnoreCase("100rel")) {
-	                		if(sipResponsetListener!=null) sipResponsetListener.do100Rel(responseEvent, clientTransaction);
-	                }
+//	                //Send PRACK for test
+//	                if ( requireHeader.getOptionTag().equalsIgnoreCase("100rel")) {
+//	                		if(sipResponsetListener!=null) sipResponsetListener.do100Rel(responseEvent, clientTransaction);
+//	                }
 			} else {
+				logger.debug("else");
 				ServerTransaction serverTransaction = (ServerTransaction) clientTransaction.getApplicationData();
 				if(serverTransaction==null) {
 					logger.warn("serverTransaction==null");
