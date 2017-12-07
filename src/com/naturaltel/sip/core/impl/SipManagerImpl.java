@@ -53,6 +53,7 @@ public class SipManagerImpl implements SipManager {
 	
 	protected CallManager callManager;
 	protected ConfigurationManager configurationManager;
+	protected ListeningPointConfig listeningPointConfig;
 
 	//TODO Tang 2017/11/06 改使用 config 取得 
 //	private static final String myAddress = "192.168.31.106";	//"127.0.0.1";
@@ -97,7 +98,7 @@ public class SipManagerImpl implements SipManager {
 			logger.debug("createSipStack");
 			SipStack sipStack = createSipStack(sipFactory, properties);
 			createSomeFactory(sipFactory);
-			ListeningPointConfig listeningPointConfig = configurationManager.getListeningPointConfig();
+			listeningPointConfig = configurationManager.getListeningPointConfig();
 			logger.debug(listeningPointConfig.toString());
 			transport = listeningPointConfig.localTransport;
 			//TODO 這邊要抽出，做多個 localAddress, localPort, addSipListener(mo, mt)

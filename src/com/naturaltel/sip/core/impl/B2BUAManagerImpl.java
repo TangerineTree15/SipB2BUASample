@@ -513,15 +513,8 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			//Customized Header
 			Header extensionHeader;
 			try {
-				//Add Route
-				String routeString = "<sip:"+oriViaH.getHost()+ ":" + oriViaH.getPort()+";lr>";
-				//String routeString = "<sip:192.168.31.106:56789;lr>";
-				extensionHeader = headerFactory.createHeader(RouteHeader.NAME, routeString);
-				request.addHeader(extensionHeader);
-				
 				//Add P-Served-User
 				PServedUserHeader pServedUserHeader = (PServedUserHeader)oriRequest.getHeader(PServedUser.NAME);
-				pServedUserHeader.setSessionCase("term");
 				//logger.debug(((SIPHeader) pServedUserHeader).getHeaderName() + ": " + ((SIPHeader) pServedUserHeader).getHeaderValue());
 				//logger.debug(pServedUserHeader.getSessionCase() + ", " + pServedUserHeader.getRegistrationState());
 				request.addHeader(headerFactory.createHeader(((SIPHeader) pServedUserHeader).getHeaderName(), ((SIPHeader) pServedUserHeader).getHeaderValue()));
@@ -537,6 +530,18 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			    request.addHeader(ppsh);
 
 				ListIterator<SIPHeader> sipHeaders;
+				//Add Route
+				sipHeaders = oriRequest.getHeaders(RouteHeader.NAME);
+				while(sipHeaders.hasNext()) {
+					SIPHeader sipHeader = sipHeaders.next();
+					logger.debug(sipHeader.getName() + ":" + sipHeader.getHeaderValue());
+					String headerValue = sipHeader.getHeaderValue();
+					if(headerValue != null && !headerValue.contains(listeningPointConfig.localDomain)) {
+						RouteHeader routeHeader = (RouteHeader) sipHeader;
+						request.addHeader(headerFactory.createRouteHeader(routeHeader.getAddress()));
+					}
+				}
+				
 				//copy AllowHeader
 				sipHeaders = oriRequest.getHeaders(AllowHeader.NAME);
 				while(sipHeaders.hasNext()) {
@@ -548,14 +553,14 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 				sipHeaders = oriRequest.getHeaders(SupportedHeader.NAME);
 				while(sipHeaders.hasNext()) {
 					SIPHeader sipHeader = sipHeaders.next();
-//					logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
+					//logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
 					request.addHeader(headerFactory.createSupportedHeader(sipHeader.getHeaderValue()));
 				}
 				//copy AcceptHeader
 				sipHeaders = oriRequest.getHeaders(AcceptHeader.NAME);
 				while(sipHeaders.hasNext()) {
 					SIPHeader sipHeader = sipHeaders.next();
-//					logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
+					//logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
 					AcceptHeader acceptHeader = (AcceptHeader)sipHeader;
 					request.addHeader(acceptHeader);
 				}

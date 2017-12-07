@@ -30,14 +30,14 @@ public class ConfigurationManagerMock implements ConfigurationManager {
 
 	@Override
 	public ListeningPointConfig getListeningPointConfig() {
-		listeningPointConfig = new ListeningPointConfig("192.168.31.106", 5082, "udp");
+		listeningPointConfig = new ListeningPointConfig("192.168.31.106", 5082, "udp", "ec01sbaporg.ims.mnc002.mcc466.3gppnetwork.org");
 		return listeningPointConfig;
 	}
 
 	@Override
 	public ListeningPointConfig loadListeningPointConfig(String filePath) {
 //		logger.debug("loadListeningPointConfig filePath=" + filePath);
-		listeningPointConfig = new ListeningPointConfig("192.168.31.106", 5082, "udp");
+		listeningPointConfig = new ListeningPointConfig("192.168.31.106", 5082, "udp", "ec01sbaporg.ims.mnc002.mcc466.3gppnetwork.org");
 		return listeningPointConfig;
 	}
 
