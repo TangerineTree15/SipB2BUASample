@@ -1,5 +1,6 @@
 {
   "localAddress": "192.168.31.106",
   "localPort": "5083",
-  "localTransport": "udp"
+  "localTransport": "udp",
+  "localDomain": "ec01sbaporg.ims.mnc002.mcc466.3gppnetwork.org"
 }
