@@ -16,6 +16,7 @@ import javax.sip.SipException;
 import javax.sip.SipProvider;
 import javax.sip.Transaction;
 import javax.sip.address.Address;
+import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
 import javax.sip.address.TelURL;
 import javax.sip.address.URI;
@@ -27,6 +28,7 @@ import javax.sip.header.ContactHeader;
 import javax.sip.header.ContentTypeHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
+import javax.sip.header.HeaderFactory;
 import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RequireHeader;
 import javax.sip.header.RouteHeader;
@@ -34,6 +36,7 @@ import javax.sip.header.SupportedHeader;
 import javax.sip.header.ToHeader;
 import javax.sip.header.UserAgentHeader;
 import javax.sip.header.ViaHeader;
+import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -41,10 +44,12 @@ import org.apache.log4j.Logger;
 
 import com.naturaltel.sip.Injection;
 import com.naturaltel.sip.component.ConnectCalleeUsers;
+import com.naturaltel.sip.component.ListeningPointConfig;
 import com.naturaltel.sip.component.OriginCalleeUser;
 import com.naturaltel.sip.core.manager.B2BUAManager;
 import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
+import com.naturaltel.sip.core.manager.LegManager;
 import com.naturaltel.sip.core.manager.StorageManager;
 
 import gov.nist.javax.sip.header.HeaderFactoryImpl;
@@ -418,305 +423,15 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 	
 	
 	//TODO Tang 這段 method 要客製化修改
-	@SuppressWarnings("unchecked")
 	public ClientTransaction createClientTransaction(Request oriRequest, SipURI formSipURI, URI destination, byte[] rawContents) {
 		try {
-			//Get oriRequest Data
-			String ipAddress = sipProvider.getListeningPoint(transport).getIPAddress();
-			int port = sipProvider.getListeningPoint(transport).getPort();
-			logger.debug("ipAddress=" + ipAddress + ", port=" + port);
-			ViaHeader oriViaH = (ViaHeader) oriRequest.getHeader(ViaHeader.NAME);
-			logger.debug("oriViaH.getHost=" + oriViaH.getHost() + ", oriViaH.getPort()=" + oriViaH.getPort());
-			logger.debug(oriRequest.getHeader("P-Visited-Network-ID"));
-			MaxForwardsHeader oriMaxForwardsHeader = (MaxForwardsHeader) oriRequest.getHeader(MaxForwardsHeader.NAME);
+			//產生另一個 leg 的 Request
+			LegManager legManager = new LegManagerImpl(sipProvider, addressFactory, messageFactory, headerFactory, listeningPointConfig);
+			Request request = legManager.createOtherInviteRequest(oriRequest, formSipURI, destination, rawContents);
 			
-			// create Request URI
-			URI requestURI;
-			if(destination.isSipURI()) {
-				requestURI = destination;
-			} else {
-				//SipURI
-				//sip:+886944300377@ims.mnc002.mcc466.3gppnetwork.org;user=phone
-////				String defaultDomainName = sipProp.getProperty("net.java.sip.communicator.sip.DEFAULT_DOMAIN_NAME");
-////				String defaultDomainName = "ims.mnc002.mcc466.3gppnetwork.org";	//TODO for test
-//				String defaultDomainName = formSipURI.getHost();
-//				String callee = "sip:+" + requestUrl.getPhoneNumber() + "@" + defaultDomainName + ";user=phone";
-				
-				//TelURI
-				//tel:+886944300377 SIP/2.0
-				TelURL requestUrl = ((TelURL) destination);
-				String callee = "tel:+" + requestUrl.getPhoneNumber();
-				
-				logger.debug(callee);
-				requestURI = addressFactory.createURI(callee);
-			}
-			
-			// create From Header
-			String fromName = formSipURI.getUser();
-//			String fromDisplayName = "";
-			Address fromNameAddress = addressFactory.createAddress(formSipURI);
-//			fromNameAddress.setDisplayName(fromDisplayName);
-			FromHeader fromHeader = headerFactory.createFromHeader(fromNameAddress, new Long(counter.getAndIncrement()).toString());
-
-			// create To Header
-//			SipURI toAddress = addressFactory.createSipURI(toUser, toSipAddress);
-			Address toNameAddress = addressFactory.createAddress(destination);
-//			toNameAddress.setDisplayName(toDisplayName);
-			ToHeader toHeader = headerFactory.createToHeader(toNameAddress, null);
-
-			// Create ViaHeaders
-			ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-			ViaHeader viaHeader = headerFactory.createViaHeader(ipAddress, port, transport, null);
-			// add via headers
-			viaHeaders.add(viaHeader);
-
-			// Create a new CallId header
-			CallIdHeader callIdHeader = sipProvider.getNewCallId();
-			
-			// Create a new Cseq header
-			CSeqHeader cSeqHeader = headerFactory.createCSeqHeader(1L, Request.INVITE);
-			
-			// Create ContentTypeHeader
-			ContentTypeHeader contentTypeHeader = headerFactory.createContentTypeHeader("application", "sdp");
-
-			// Create a new MaxForwardsHeader
-			//MaxForwardsHeader maxForwards = headerFactory.createMaxForwardsHeader(70);
-			MaxForwardsHeader maxForwards = oriMaxForwardsHeader;
-			maxForwards.decrementMaxForwards();
-
-
-			// Create the Request.
-			Request request = messageFactory.createRequest(requestURI,
-					Request.INVITE, callIdHeader, cSeqHeader, fromHeader,
-					toHeader, viaHeaders, maxForwards);
-			
-			// Create contact headers
-			String host = ipAddress;
-//			SipURI contactUrl = addressFactory.createSipURI(fromName, host);
-//			contactUrl.setPort(port);
-//			contactUrl.setLrParam();
-
-//			// Create the contact name address.
-//			SipURI contactURI = addressFactory.createSipURI(fromName, host);
-//			contactURI.setPort(sipProvider.getListeningPoint(transport).getPort());
-//			Address contactAddress = addressFactory.createAddress(contactURI);
-//
-//			// Add the contact address.
-//			contactAddress.setDisplayName(fromName);
-//			ContactHeader contactHeader = headerFactory.createContactHeader(contactAddress);
-//			request.addHeader(contactHeader);
-			
-
-			
-			// Add contentTypeHeader
-			request.setContent(rawContents, contentTypeHeader);
-			
-			
-			//TODO 可以用 HeaderFactoryExt createPAssertedIdentityHeader ...
-			//Customized Header
-			Header extensionHeader;
-			try {
-				//Add ContactHeader
-				SipURI contactURI = addressFactory.createSipURI(fromName, host);
-				contactURI.setPort(sipProvider.getListeningPoint(transport).getPort());
-				Address contactAddress = addressFactory.createAddress(contactURI);
-				ContactHeader contactHeader = (ContactHeader)oriRequest.getHeader(ContactHeader.NAME);
-				contactHeader.setAddress(contactAddress);
-				request.addHeader(contactHeader);
-				
-				
-				//Add P-Served-User
-				PServedUserHeader pServedUserHeader = (PServedUserHeader)oriRequest.getHeader(PServedUser.NAME);
-				//logger.debug(((SIPHeader) pServedUserHeader).getHeaderName() + ": " + ((SIPHeader) pServedUserHeader).getHeaderValue());
-				//logger.debug(pServedUserHeader.getSessionCase() + ", " + pServedUserHeader.getRegistrationState());
-				request.addHeader(headerFactory.createHeader(((SIPHeader) pServedUserHeader).getHeaderName(), ((SIPHeader) pServedUserHeader).getHeaderValue()));
-				
-				//P-Preferred-Service
-				PPreferredServiceHeader pPreferredServiceHeader = (PPreferredServiceHeader)oriRequest.getHeader(PPreferredService.NAME);
-				//request.addHeader((Header)pPreferredServiceHeader);
-				HeaderFactoryImpl himpl = new HeaderFactoryImpl();
-				himpl.createPPreferredServiceHeader();
-			    PPreferredServiceHeader ppsh = himpl.createPPreferredServiceHeader();
-			    //logger.debug(pPreferredServiceHeader.getSubserviceIdentifiers().trim());
-			    ppsh.setSubserviceIdentifiers(pPreferredServiceHeader.getSubserviceIdentifiers().trim());
-			    request.addHeader(ppsh);
-
-			    //User-Agent: Ericsson MTAS -  CXP9020729/8 R6AF01
-			    ArrayList ua = new ArrayList();
-			    ua.add("SB");
-			    UserAgentHeader userAgentHeader = headerFactory.createUserAgentHeader(ua);
-			    request.addHeader(userAgentHeader);
-			    
-				ListIterator<SIPHeader> sipHeaders;
-				//Add Route
-				sipHeaders = oriRequest.getHeaders(RouteHeader.NAME);
-				while(sipHeaders.hasNext()) {
-					SIPHeader sipHeader = sipHeaders.next();
-					logger.debug(sipHeader.getName() + ":" + sipHeader.getHeaderValue());
-					String headerValue = sipHeader.getHeaderValue();
-					if(headerValue != null && !headerValue.contains(listeningPointConfig.localDomain)) {
-						RouteHeader routeHeader = (RouteHeader) sipHeader;
-						request.addHeader(headerFactory.createRouteHeader(routeHeader.getAddress()));
-					}
-				}
-				
-				//copy AllowHeader
-				sipHeaders = oriRequest.getHeaders(AllowHeader.NAME);
-				while(sipHeaders.hasNext()) {
-					SIPHeader sipHeader = sipHeaders.next();
-					//logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
-					request.addHeader(headerFactory.createAllowHeader(sipHeader.getHeaderValue()));
-				}
-				//copy SupportedHeader
-				sipHeaders = oriRequest.getHeaders(SupportedHeader.NAME);
-				while(sipHeaders.hasNext()) {
-					SIPHeader sipHeader = sipHeaders.next();
-					//logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
-					request.addHeader(headerFactory.createSupportedHeader(sipHeader.getHeaderValue()));
-				}
-				//copy AcceptHeader
-				sipHeaders = oriRequest.getHeaders(AcceptHeader.NAME);
-				while(sipHeaders.hasNext()) {
-					SIPHeader sipHeader = sipHeaders.next();
-					//logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
-					AcceptHeader acceptHeader = (AcceptHeader)sipHeader;
-					request.addHeader(acceptHeader);
-				}
-				
-				//copy P-Access-Network-Info
-				sipHeaders = oriRequest.getHeaders(PAccessNetworkInfoHeader.NAME);
-				while(sipHeaders.hasNext()) {
-					SIPHeader sipHeader = sipHeaders.next();
-					logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
-					request.addHeader(headerFactory.createHeader(sipHeader.getHeaderName(), sipHeader.getHeaderValue()));
-				}
-				//copy P-Asserted-Identity
-				sipHeaders = oriRequest.getHeaders(PAssertedIdentityHeader.NAME);
-				while(sipHeaders.hasNext()) {
-					SIPHeader sipHeader = sipHeaders.next();
-					logger.debug(sipHeader.getHeaderName() + ": " + sipHeader.getHeaderValue());
-					request.addHeader(headerFactory.createHeader(sipHeader.getHeaderName(), sipHeader.getHeaderValue()));
-				}
-				
-			} catch(Exception e) {
-				logger.error(e.getMessage());
-				e.printStackTrace();
-			}
-			
-			
-		     //copy other Headers
-			//TODO 修改 From -> FromHeader.NAME ... 等等
-	        String[] hhh = {FromHeader.NAME, "To", "Via", "Call-ID", "CSeq", "Max-Forwards", "Content-Type", "Content-Length", "Contact", 
-	        		
-	        		RouteHeader.NAME, PServedUserHeader.NAME, PPreferredService.NAME, 
-	        		AllowHeader.NAME, SupportedHeader.NAME, AcceptHeader.NAME, PAccessNetworkInfoHeader.NAME, PAssertedIdentityHeader.NAME, 
-	        		};
-			try {
-				ListIterator<String> headers = oriRequest.getHeaderNames();
-				while(headers.hasNext()) {
-					String headerName = headers.next();
-					if(!Arrays.asList(hhh).contains(headerName)) {
-						logger.debug("RequestHeader: " + headerName +"="+ oriRequest.getHeader(headerName));
-						extensionHeader = oriRequest.getHeader(headerName);
-						request.addHeader(extensionHeader);
-					}
-				}
-			} catch(Exception e) {
-				logger.error(e.getMessage());
-				e.printStackTrace();
-			}
-			
-//			try {
-//				//TODO 改 response.getHeaderNames() Array loop
-//				//Add the extension header.
-//				Header extensionHeader = oriRequest.getHeader("Accept-Contact");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("P-Asserted-Identity");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("P-Visited-Network-ID");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("P-Access-Network-Info");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("Min-Se");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("Session-Expires");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("P-Charging-Vector");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("P-Early-Media");
-//				request.addHeader(extensionHeader);
-//				extensionHeader = oriRequest.getHeader("Accept");
-//				request.addHeader(extensionHeader);
-////				extensionHeader = oriRequest.getHeader("P-Preferred-Service");
-////				request.addHeader(extensionHeader);
-////				extensionHeader = oriRequest.getHeader("P-Served-User");
-////				request.addHeader(extensionHeader);
-////				logger.debug("extensionHeader=" + extensionHeader);
-//				
-//
-//
-//				String routeString = "<sip:"+oriViaH.getHost()+ ":" + oriViaH.getPort()+";lr>";
-////				String routeString = "<sip:192.168.31.106:56789;lr>";
-//				extensionHeader = headerFactory.createHeader("Route", routeString);		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				
-//				extensionHeader = headerFactory.createHeader("Reject-Contact", "*;+g.3gpp.ics=\"server\"");		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				extensionHeader = headerFactory.createHeader("User-Agent", "SBCore");		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				extensionHeader = headerFactory.createHeader("P-Charging-Function-Addresses", "ccf=\"aaa://cdf1.ims.mnc001.mcc466.3gppnetwork.org;transport=tcp\";ccf=\"aaa://cdf2.ims.mnc001.mcc466.3gppnetwork.org;transport=tcp\"");		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				extensionHeader = headerFactory.createHeader("P-Called-Party-ID", "<sip:+886903507449@ims.mnc001.mcc466.3gppnetwork.org>");		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				extensionHeader = headerFactory.createHeader("Feature-Caps", "*;+g.3gpp.srvcc;+g.3gpp.srvcc-alerting;+g.3gpp.remote-leg-info");		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				extensionHeader = headerFactory.createHeader("Recv-Info", "g.3gpp.state-and-event");		//TODO Tang 要修
-//				request.addHeader(extensionHeader); 
-//				extensionHeader = headerFactory.createHeader("Session-ID", "b9d0eacffe00ebd5dbc6f7df87c82cde");		//TODO Tang 要修
-//				request.addHeader(extensionHeader);
-//				extensionHeader = headerFactory.createHeader("P-Served-User", "sip:+886944300376@ims.mnc002.mcc466.3gppnetwork.org;sescase=orig;regstate=reg");		//TODO Tang 要修
-//				request.addHeader(extensionHeader);
-//				
-//			} catch(Exception e) {
-//				logger.error(e.getMessage());
-//				e.printStackTrace();
-//			}
-			
-//			extensionHeader = headerFactory.createHeader("Supported", "timer, 100rel, replaces, precondition, histinfo, tdialog, replaces");		//TODO Tang 要修
-//			request.addHeader(extensionHeader);
-			
-
-
-
-			
-//			// You can add extension headers of your own making
-//			// to the outgoing SIP request.
-//			// Add the extension header.
-//			Header extensionHeader = headerFactory.createHeader("My-Header",	"my header value");	//TODO Tang 要修
-//			request.addHeader(extensionHeader);
-//
-//
-//			// You can add as many extension headers as you
-//			// want.
-//
-//			extensionHeader = headerFactory.createHeader("My-Other-Header", "my new header value ");		//TODO Tang 要修
-//			request.addHeader(extensionHeader);
-//
-//			Header callInfoHeader = headerFactory.createHeader("Call-Info","<http://www.antd.nist.gov>");	//TODO Tang 要修
-//			request.addHeader(callInfoHeader);
-
-	        logger.debug("request=" + request.toString());
-	        
 			// Create the client transaction.
 			ClientTransaction clientTransaction = sipProvider.getNewClientTransaction(request);
-//			displayTransaction(clientTransaction);
-
-			// send the request out.
-
-//			inviteTid.sendRequest();
-			
 			return clientTransaction;
-
 		} catch (Exception ex) {
 			logger.error(ex.toString());
 			ex.printStackTrace();
