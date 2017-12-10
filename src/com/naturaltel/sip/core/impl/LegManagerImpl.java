@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ListIterator;
 
-import javax.sip.ClientTransaction;
 import javax.sip.SipProvider;
 import javax.sip.address.Address;
 import javax.sip.address.AddressFactory;
@@ -69,14 +68,17 @@ public class LegManagerImpl implements LegManager {
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public Request createOtherInviteRequest(Request oriRequest, SipURI formSipURI, URI destination,
 			byte[] rawContents) {
 
 		try {
 			//Get oriRequest Data
-			String ipAddress = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getIPAddress();
-			int port = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getPort();
+//			String ipAddress = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getIPAddress();
+//			int port = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getPort();
+			String ipAddress = "192.168.31.106";
+			int port = 5082;
 			logger.debug("ipAddress=" + ipAddress + ", port=" + port);
 			ViaHeader oriViaH = (ViaHeader) oriRequest.getHeader(ViaHeader.NAME);
 			logger.debug("oriViaH.getHost=" + oriViaH.getHost() + ", oriViaH.getPort()=" + oriViaH.getPort());

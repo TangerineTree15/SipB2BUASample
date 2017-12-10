@@ -4,7 +4,6 @@ package com.naturaltel.sip.core.impl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.ListIterator;
-import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sip.ClientTransaction;
 import javax.sip.Dialog;
@@ -16,27 +15,15 @@ import javax.sip.SipException;
 import javax.sip.SipProvider;
 import javax.sip.Transaction;
 import javax.sip.address.Address;
-import javax.sip.address.AddressFactory;
 import javax.sip.address.SipURI;
 import javax.sip.address.TelURL;
 import javax.sip.address.URI;
-import javax.sip.header.AcceptHeader;
-import javax.sip.header.AllowHeader;
-import javax.sip.header.CSeqHeader;
-import javax.sip.header.CallIdHeader;
 import javax.sip.header.ContactHeader;
 import javax.sip.header.ContentTypeHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
-import javax.sip.header.HeaderFactory;
-import javax.sip.header.MaxForwardsHeader;
 import javax.sip.header.RequireHeader;
-import javax.sip.header.RouteHeader;
-import javax.sip.header.SupportedHeader;
 import javax.sip.header.ToHeader;
-import javax.sip.header.UserAgentHeader;
-import javax.sip.header.ViaHeader;
-import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -44,7 +31,6 @@ import org.apache.log4j.Logger;
 
 import com.naturaltel.sip.Injection;
 import com.naturaltel.sip.component.ConnectCalleeUsers;
-import com.naturaltel.sip.component.ListeningPointConfig;
 import com.naturaltel.sip.component.OriginCalleeUser;
 import com.naturaltel.sip.core.manager.B2BUAManager;
 import com.naturaltel.sip.core.manager.CallManager;
@@ -52,14 +38,6 @@ import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.LegManager;
 import com.naturaltel.sip.core.manager.StorageManager;
 
-import gov.nist.javax.sip.header.HeaderFactoryImpl;
-import gov.nist.javax.sip.header.SIPHeader;
-import gov.nist.javax.sip.header.ims.PAccessNetworkInfoHeader;
-import gov.nist.javax.sip.header.ims.PAssertedIdentityHeader;
-import gov.nist.javax.sip.header.ims.PPreferredService;
-import gov.nist.javax.sip.header.ims.PPreferredServiceHeader;
-import gov.nist.javax.sip.header.ims.PServedUser;
-import gov.nist.javax.sip.header.ims.PServedUserHeader;
 
 public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 
@@ -67,7 +45,7 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 	
 	private StorageManager storageManager = Injection.provideStorageManager();
 	
-	private AtomicLong counter = new AtomicLong();
+//	private AtomicLong counter = new AtomicLong();
 	
 	
     private static B2BUAManager b2BUAManager;
@@ -90,8 +68,8 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
     }
     
 	@Override
-	public void init(CallManager callManager, ConfigurationManager configurationManager) {
-		super.init(callManager, configurationManager);
+	public void init(SipProvider sipProvider, CallManager callManager, ConfigurationManager configurationManager) {
+		super.init(sipProvider, callManager, configurationManager);
 		setSipRequestListener(this);
 		setSipResponsetListener(this);
 	}

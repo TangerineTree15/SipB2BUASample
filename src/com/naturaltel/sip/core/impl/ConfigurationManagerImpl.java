@@ -16,18 +16,19 @@ public class ConfigurationManagerImpl implements ConfigurationManager {
 	private ListeningPointConfig listeningPointConfig;
 	
 	
-	public static ConfigurationManager getInstance() {
+	public static ConfigurationManager getInstance(String filePath) {
         if (configurationManager == null) {
             synchronized (ConfigurationManagerImpl.class) {
                 if (configurationManager == null) {
-                	configurationManager = new ConfigurationManagerImpl();
+                	configurationManager = new ConfigurationManagerImpl(filePath);
                 }
             }
         }
         return configurationManager;
     }
     
-    public ConfigurationManagerImpl() {
+    public ConfigurationManagerImpl(String filePath) {
+    		loadListeningPointConfig(filePath);
     }
     
     

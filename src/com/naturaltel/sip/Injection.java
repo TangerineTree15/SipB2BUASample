@@ -3,17 +3,14 @@ package com.naturaltel.sip;
 import com.naturaltel.sip.core.impl.B2BUAManagerImpl;
 import com.naturaltel.sip.core.impl.CallManagerImpl;
 import com.naturaltel.sip.core.impl.ConfigurationManagerImpl;
-import com.naturaltel.sip.core.impl.SipManagerImpl;
 import com.naturaltel.sip.core.impl.StorageManagerImpl;
 import com.naturaltel.sip.core.manager.B2BUAManager;
 import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
-import com.naturaltel.sip.core.manager.SipManager;
 import com.naturaltel.sip.core.manager.StorageManager;
 import com.naturaltel.sip.core.mock.B2BUAManagerMock;
 import com.naturaltel.sip.core.mock.CallManagerMock;
 import com.naturaltel.sip.core.mock.ConfigurationManagerMock;
-import com.naturaltel.sip.core.mock.SipManagerMock;
 import com.naturaltel.sip.core.mock.StorageManagerMock;
 
 public class Injection {
@@ -60,11 +57,11 @@ public class Injection {
         }
     }
     
-    public static ConfigurationManager newConfigurationManager() {
+    public static ConfigurationManager newConfigurationManager(String filePath) {
         if (ConfigurationManagerEnv == ENV.MOCK) {
-            return new ConfigurationManagerMock();
+            return new ConfigurationManagerMock(filePath);
         } else {
-            return new ConfigurationManagerImpl();
+            return new ConfigurationManagerImpl(filePath);
         }
     }
 }

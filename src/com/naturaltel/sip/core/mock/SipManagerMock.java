@@ -4,6 +4,7 @@ import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
 import javax.sip.RequestEvent;
 import javax.sip.ResponseEvent;
+import javax.sip.SipProvider;
 import javax.sip.TimeoutEvent;
 import javax.sip.TransactionTerminatedEvent;
 
@@ -27,7 +28,7 @@ public class SipManagerMock implements SipManager {
     }
     
 	@Override
-	public void init(CallManager callManager, ConfigurationManager configurationManager) {
+	public void init(SipProvider sipProvider, CallManager callManager, ConfigurationManager configurationManager) {
 		// TODO Auto-generated method stub
 		
 	}

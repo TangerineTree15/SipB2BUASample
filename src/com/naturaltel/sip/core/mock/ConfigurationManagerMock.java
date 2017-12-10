@@ -13,19 +13,20 @@ public class ConfigurationManagerMock implements ConfigurationManager {
 	
 	private ListeningPointConfig listeningPointConfig;
 
-	public static ConfigurationManager getInstance() {
+	public static ConfigurationManager getInstance(String filePath) {
         if (configurationManager == null) {
             synchronized (ConfigurationManagerMock.class) {
                 if (configurationManager == null) {
-                	configurationManager = new ConfigurationManagerMock();
+                	configurationManager = new ConfigurationManagerMock(filePath);
                 }
             }
         }
         return configurationManager;
     }
     
-    public ConfigurationManagerMock() {
+    public ConfigurationManagerMock(String filePath) {
 //		logger = Logger.getLogger(ConfigurationManagerMock.class);
+    		loadListeningPointConfig(filePath);
     }
 
 	@Override

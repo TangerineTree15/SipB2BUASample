@@ -1,36 +1,53 @@
 package com.naturaltel.sip;
 
+import javax.sip.SipProvider;
+
+import com.naturaltel.sip.core.impl.SipStackManagerImpl;
 import com.naturaltel.sip.core.manager.B2BUAManager;
 import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
+import com.naturaltel.sip.core.manager.SipStackManager;
 
 public class ServerBrokerSIP {
 
 	public static void main(String args[]) {
 //		new B2BUA().init();	//for B2BUA test
+
+		SipStackManager sipStackManager = SipStackManagerImpl.getInstance();
+
+		String stackName;
+		String configFile;
+		
+		
+		//MTCall_1
+		configFile = "./MTListeningPointConfig1.json";
+		stackName = "MTCall_1";
+		B2BUAManager mtB2BUAManager1 = Injection.newB2BUAManager();
+		CallManager mtCallManager1 = Injection.newMoCallManager();	//TDOO 實作 mt CallManager
+		addB2BUAManager(sipStackManager, stackName, mtB2BUAManager1, mtCallManager1, configFile);
+		
+		//MTCall_2
+		configFile = "./MTListeningPointConfig2.json";
+		stackName = "MTCall_2";
+		B2BUAManager mtB2BUAManager2 = Injection.newB2BUAManager();
+		CallManager mtCallManager2 = Injection.newMoCallManager();	//TDOO 實作 mt CallManager
+		addB2BUAManager(sipStackManager, stackName, mtB2BUAManager2, mtCallManager2, configFile);
 		
 		//MoCall
-		CallManager moCallManager = Injection.newMoCallManager();
-		ConfigurationManager moConfigurationManager = Injection.newConfigurationManager();
-		moConfigurationManager.loadListeningPointConfig("./MOListeningPointConfig.json");
-		
+		configFile = "./MOListeningPointConfig.json";
+		stackName = "MOCall";
 		B2BUAManager moB2BUAManager = Injection.newB2BUAManager();
-		moB2BUAManager.init(moCallManager, moConfigurationManager);
-		
-		//MTCall-1
-//		CallManager mtCallManager1 = Injection.newMtCallManager();
-//		ConfigurationManager mtConfigurationManager1 = Injection.newConfigurationManager();
-//		mtConfigurationManager1.loadListeningPointConfig("./MTListeningPointConfig1.json");
-//		
-//		B2BUAManager mtB2BUAManager1 = Injection.newB2BUAManager();
-//		mtB2BUAManager1.init(mtCallManager1, mtConfigurationManager1);
-		
-		//MTCall-2
-//		CallManager mtCallManager2 = Injection.provideMtCallManager();
-//		ConfigurationManager mtConfigurationManager2 = Injection.provideConfigurationManager();
-//		mtConfigurationManager2.loadListeningPointConfig("./MTListeningPointConfig2.json");
-//		
-//		B2BUAManager mtB2BUAManager2 = Injection.provideB2BUAManager();
-//		mtB2BUAManager2.init(mtCallManager2, mtConfigurationManager2);
+		CallManager moCallManager = Injection.newMoCallManager();
+		addB2BUAManager(sipStackManager, stackName, moB2BUAManager, moCallManager, configFile);
 	}
+	
+	private static void addB2BUAManager(SipStackManager sipStackManager, String stackName, B2BUAManager b2BUAManager, CallManager callManager, String configFile) {
+		//設定檔
+		ConfigurationManager moConfigurationManager = Injection.newConfigurationManager(configFile);
+		//Add B2BUAManager to SipListener
+		SipProvider sipProvider = sipStackManager.addSipListener(stackName, b2BUAManager, moConfigurationManager);
+		//init B2BUAManager
+		b2BUAManager.init(sipProvider, callManager, moConfigurationManager);
+	}
+	
 }

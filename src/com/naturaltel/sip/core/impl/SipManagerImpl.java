@@ -1,20 +1,16 @@
 package com.naturaltel.sip.core.impl;
 
-import java.util.Properties;
 
 import javax.sip.ClientTransaction;
 import javax.sip.Dialog;
 import javax.sip.DialogTerminatedEvent;
 import javax.sip.IOExceptionEvent;
-import javax.sip.ListeningPoint;
-import javax.sip.ObjectInUseException;
 import javax.sip.PeerUnavailableException;
 import javax.sip.RequestEvent;
 import javax.sip.ResponseEvent;
 import javax.sip.ServerTransaction;
 import javax.sip.SipFactory;
 import javax.sip.SipProvider;
-import javax.sip.SipStack;
 import javax.sip.TimeoutEvent;
 import javax.sip.TransactionTerminatedEvent;
 import javax.sip.address.AddressFactory;
@@ -24,10 +20,7 @@ import javax.sip.message.MessageFactory;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 
 import com.naturaltel.sip.component.ListeningPointConfig;
 import com.naturaltel.sip.core.SipRequestListener;
@@ -36,8 +29,6 @@ import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.SipManager;
 
-import gov.nist.javax.sip.header.HeaderFactoryExt;
-import gov.nist.javax.sip.stack.NioMessageProcessorFactory;
 
 public class SipManagerImpl implements SipManager {
 
@@ -55,11 +46,7 @@ public class SipManagerImpl implements SipManager {
 	protected ConfigurationManager configurationManager;
 	protected ListeningPointConfig listeningPointConfig;
 
-	//TODO Tang 2017/11/06 改使用 config 取得 
-//	private static final String myAddress = "192.168.31.106";	//"127.0.0.1";
-//	private static final int myPort = 5082;
-	public String transport = "udp";//"ws";
-	
+	protected String transport;
 	
 	public void setSipRequestListener(SipRequestListener sipRequestListener) {
 		this.sipRequestListener = sipRequestListener;
@@ -85,28 +72,20 @@ public class SipManagerImpl implements SipManager {
     public SipManagerImpl() {
     		logger = Logger.getLogger(SipManagerImpl.class);
     }
-
+    
 	@Override
-	public void init(CallManager callManager, ConfigurationManager configurationManager) {
+	public void init(SipProvider sipProvider, CallManager callManager, ConfigurationManager configurationManager) {
 		System.out.println("init");
 		
 		try {
-			
-			createAppender();
 			SipFactory sipFactory = createSipFactory();
-			Properties properties = createProperties();
-			logger.debug("createSipStack");
-			SipStack sipStack = createSipStack(sipFactory, properties);
 			createSomeFactory(sipFactory);
-			listeningPointConfig = configurationManager.getListeningPointConfig();
-			logger.debug(listeningPointConfig.toString());
-			transport = listeningPointConfig.localTransport;
-			//TODO 這邊要抽出，做多個 localAddress, localPort, addSipListener(mo, mt)
-			ListeningPoint listeningPoint = sipStack.createListeningPoint(listeningPointConfig.localAddress, listeningPointConfig.localPort, listeningPointConfig.localTransport);
-			sipProvider = createSipProvider(sipStack, listeningPoint);
-			sipProvider.addSipListener(this);
+			
+			this.sipProvider = sipProvider;
 			this.callManager = callManager;
 			this.configurationManager = configurationManager;
+			this.listeningPointConfig = configurationManager.getListeningPointConfig();
+			transport = listeningPointConfig.localTransport;
 		} catch (Exception ex) {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();
@@ -301,49 +280,14 @@ public class SipManagerImpl implements SipManager {
 	
 	
 	
-	private void createAppender() {
-		//create appender
-		ConsoleAppender console = new ConsoleAppender(); 
-		//configure the appender
-		String PATTERN = "%d [%p|%c|%C{1}][%L] %m%n";
-		console.setLayout(new PatternLayout(PATTERN)); 
-		console.setThreshold(Level.DEBUG);
-		console.activateOptions();
-		//add appender to any Logger (here is root)
-		Logger.getRootLogger().addAppender(console);
-	}
+
+
+
 	private SipFactory createSipFactory() {
 		SipFactory sipFactory = null;
 		sipFactory = SipFactory.getInstance();
 		sipFactory.setPathName("gov.nist");
 		return sipFactory;
-	}
-	private Properties createProperties() {
-		Properties properties = new Properties();
-		properties.setProperty("javax.sip.STACK_NAME", "shootme");
-		// You need 16 for logging traces. 32 for debug + traces.
-		// Your code will limp at 32 but it is best for debugging.
-		properties.setProperty("gov.nist.javax.sip.TRACE_LEVEL", "LOG4J");
-		properties.setProperty("gov.nist.javax.sip.DEBUG_LOG", "shootmedebug.txt");
-		properties.setProperty("gov.nist.javax.sip.SERVER_LOG", "shootmelog.txt");
-		properties.setProperty("gov.nist.javax.sip.MESSAGE_PROCESSOR_FACTORY", NioMessageProcessorFactory.class.getName());
-		return properties;
-	}
-	private SipStack createSipStack(SipFactory sipFactory, Properties properties) {
-		SipStack sipStack = null;
-		try {
-			// Create SipStack object
-			sipStack = sipFactory.createSipStack(properties);
-			logger.debug("sipStack = " + sipStack);
-		} catch (PeerUnavailableException e) {
-			// could not find
-			// gov.nist.jain.protocol.ip.sip.SipStackImpl
-			// in the classpath
-			logger.error(e.getMessage());
-			if (e.getCause() != null) e.getCause().printStackTrace();
-//			junit.framework.TestCase.fail("Exit JVM");
-		}
-		return sipStack;
 	}
 	private void createSomeFactory(SipFactory sipFactory) {
 		try {
@@ -356,16 +300,5 @@ public class SipManagerImpl implements SipManager {
 		}
 	}
 	
-	private SipProvider createSipProvider(SipStack sipStack, ListeningPoint listeningPoint) {
-		SipProvider sipProvider = null;
-		try {
-			sipProvider = sipStack.createSipProvider(listeningPoint);
-			logger.debug("ws provider " + sipProvider);
-		} catch (ObjectInUseException ex) {
-			logger.error(ex.getMessage());
-			ex.printStackTrace();
-		}
-		return sipProvider;
-		
-	}
+
 }
