@@ -157,40 +157,67 @@ public class SipManagerImpl implements SipManager {
 				logger.debug("Response Method=" + clientTransaction.getRequest().getMethod() + ", DialogId=" + responseEvent.getDialog().getDialogId() + ", StatusCode=" + statusCode);				
 			}
 			
+			//處理 Response
 			//TODO 拆
-			if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())
-					&& (statusCode == Response.OK) ) {
-				if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
-			} else if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())
-						&& (statusCode == Response.SESSION_PROGRESS) ) {
+			if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())) {
+				if(statusCode == Response.TRYING) {
+					//100 TRYING
+					logger.debug("100 TRYING");
+				} else if(statusCode == Response.OK) {
+					//200 OK
 					if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
-	                RequireHeader requireHeader = (RequireHeader) response.getHeader(RequireHeader.NAME);
-//	                //Send PRACK for test
-//	                if ( requireHeader.getOptionTag().equalsIgnoreCase("100rel")) {
-//	                		if(sipResponsetListener!=null) sipResponsetListener.do100Rel(responseEvent, clientTransaction);
-//	                }
+				} else if (statusCode == Response.SESSION_PROGRESS){
+					//183 SESSION PROGRESS
+					if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
+				}
 			} else {
-				logger.debug("else");
+				logger.debug("Other Method sendResponse");
 				ServerTransaction serverTransaction = (ServerTransaction) clientTransaction.getApplicationData();
 				if(serverTransaction==null) {
 					logger.warn("serverTransaction==null");
 					return;
 				}
 				Response otherResponse = messageFactory.createResponse(statusCode, serverTransaction.getRequest());
-				
-//				logger.debug("serverTransaction" + " getMethod=" + serverTransaction.getRequest().getMethod());
-//				logger.debug("serverTransaction" + " DialogId=" + serverTransaction.getDialog().getDialogId());				
-//				logger.debug("clientTransaction" + " getMethod=" + clientTransaction.getRequest().getMethod());
-//				logger.debug("clientTransaction" + " DialogId=" + clientTransaction.getDialog().getDialogId());
-				
-				//Via: SIP/2.0/UDP 192.168.31.106:5060;branch=z9hG4bKc2d61beb22a93338cbba9090653ca864jaaaaaaiaaaaaawnxtvma3Zqkv7ypurf00zvinhamaaaaabqaaaacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqaaaaaa
-				//Via: SIP/2.0/UDP 192.168.31.106:5060;branch=z9hG4bKc2d61beb22a93338cbba9090653ca864jaaaaaaiaaaaaawnxtvma3Zqkv7ypurf00zvinhamaaaaabqaaaacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqaaaaaa,SIP/2.0/UDP 10.246.92.7:5160;branch=z9hG4bK1769563974-298846699
-				
-				
 				logger.debug(otherResponse);
 				logger.debug("sendResponse");
 				serverTransaction.sendResponse(otherResponse);
 			}
+			
+			
+			
+//			if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())
+//					&& (statusCode == Response.OK) ) {
+//				if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
+//			} else if(Request.INVITE.equals(clientTransaction.getRequest().getMethod())
+//						&& (statusCode == Response.SESSION_PROGRESS) ) {
+//					if(sipResponsetListener!=null) sipResponsetListener.doInviteResponseWithSDP(responseEvent, clientTransaction);
+//	                RequireHeader requireHeader = (RequireHeader) response.getHeader(RequireHeader.NAME);
+////	                //Send PRACK for test
+////	                if ( requireHeader.getOptionTag().equalsIgnoreCase("100rel")) {
+////	                		if(sipResponsetListener!=null) sipResponsetListener.do100Rel(responseEvent, clientTransaction);
+////	                }
+//			} else {
+//				logger.debug("else");
+//				ServerTransaction serverTransaction = (ServerTransaction) clientTransaction.getApplicationData();
+//				if(serverTransaction==null) {
+//					logger.warn("serverTransaction==null");
+//					return;
+//				}
+//				Response otherResponse = messageFactory.createResponse(statusCode, serverTransaction.getRequest());
+//				
+////				logger.debug("serverTransaction" + " getMethod=" + serverTransaction.getRequest().getMethod());
+////				logger.debug("serverTransaction" + " DialogId=" + serverTransaction.getDialog().getDialogId());				
+////				logger.debug("clientTransaction" + " getMethod=" + clientTransaction.getRequest().getMethod());
+////				logger.debug("clientTransaction" + " DialogId=" + clientTransaction.getDialog().getDialogId());
+//				
+//				//Via: SIP/2.0/UDP 192.168.31.106:5060;branch=z9hG4bKc2d61beb22a93338cbba9090653ca864jaaaaaaiaaaaaawnxtvma3Zqkv7ypurf00zvinhamaaaaabqaaaacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqaaaaaa
+//				//Via: SIP/2.0/UDP 192.168.31.106:5060;branch=z9hG4bKc2d61beb22a93338cbba9090653ca864jaaaaaaiaaaaaawnxtvma3Zqkv7ypurf00zvinhamaaaaabqaaaacqaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaqaaaaaa,SIP/2.0/UDP 10.246.92.7:5160;branch=z9hG4bK1769563974-298846699
+//				
+//				
+//				logger.debug(otherResponse);
+//				logger.debug("sendResponse");
+//				serverTransaction.sendResponse(otherResponse);
+//			}
 		} catch (Exception ex) {
 			logger.error(ex.getMessage());
 			ex.printStackTrace();

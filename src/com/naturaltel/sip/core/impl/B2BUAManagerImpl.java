@@ -23,7 +23,12 @@ import javax.sip.header.ContentTypeHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.Header;
 import javax.sip.header.RequireHeader;
+import javax.sip.header.RouteHeader;
+import javax.sip.header.ServerHeader;
+import javax.sip.header.SupportedHeader;
 import javax.sip.header.ToHeader;
+import javax.sip.header.UserAgentHeader;
+import javax.sip.header.ViaHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
 
@@ -37,6 +42,10 @@ import com.naturaltel.sip.core.manager.CallManager;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
 import com.naturaltel.sip.core.manager.LegManager;
 import com.naturaltel.sip.core.manager.StorageManager;
+
+import gov.nist.javax.sip.header.SIPHeader;
+import gov.nist.javax.sip.header.To;
+import gov.nist.javax.sip.header.Via;
 
 
 public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
@@ -88,6 +97,10 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			}
 //			displayTransaction(serverTransaction);
 
+			//Send 100 Trying
+			Send100Trying(serverTransaction);
+			
+			
 
 			FromHeader from = (FromHeader) request.getHeader(FromHeader.NAME);
 			SipURI fromUri = (SipURI) from.getAddress().getURI();	
@@ -151,6 +164,58 @@ public class B2BUAManagerImpl extends SipManagerImpl implements B2BUAManager {
 			ex.printStackTrace();
 		}
 		
+	}
+	
+	private void Send100Trying(ServerTransaction serverTransaction) {
+		try {
+			logger.debug("Send100Trying");
+			
+			Response responseTrying = messageFactory.createResponse(Response.TRYING, serverTransaction.getRequest());
+			logger.debug("Send 100 Trying Response");
+			
+			ListIterator<SIPHeader> sipHeaders;
+			
+			//Via Header
+//			responseTrying.removeLast(Via.NAME);
+			//Add Header
+			sipHeaders = responseTrying.getHeaders(Via.NAME);
+			responseTrying.removeHeader(Via.NAME);
+			while(sipHeaders.hasNext()) {
+				SIPHeader sipHeader = sipHeaders.next();
+				logger.debug(sipHeader.getName() + ":" + sipHeader.getHeaderValue());
+				ViaHeader viaHeader = (ViaHeader) sipHeader;
+				responseTrying.addLast(headerFactory.createViaHeader(viaHeader.getHost(), viaHeader.getPort(), viaHeader.getTransport(), viaHeader.getBranch()));
+			}
+			
+			//To add Tag
+			ToHeader toHeader = (ToHeader)responseTrying.getHeader(To.NAME);
+			toHeader.setTag("p65545t1476958110m606352c32067s3_461891541-248714763");//TODO 規則？
+			
+			//Add SupportedHeader
+			SupportedHeader supportedHeader = headerFactory.createSupportedHeader("timer");
+			responseTrying.addHeader(supportedHeader);
+			
+			//Add ContactHeader
+			String ipAddress = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getIPAddress();
+			SipURI contactURI = addressFactory.createSipURI("p65545t1476958110m606352c32067s3", ipAddress);
+			contactURI.setPort(sipProvider.getListeningPoint(transport).getPort());
+			Address contactAddress = addressFactory.createAddress(contactURI);
+			ContactHeader contactHeader = headerFactory.createContactHeader(contactAddress);
+			responseTrying.addHeader(contactHeader);
+			
+		    //User-Agent: Ericsson MTAS -  CXP9020729/8 R6AF01
+		    ArrayList<String> sh = new ArrayList<String>();
+			sh.add("SB");
+		    ServerHeader serverHeader = headerFactory.createServerHeader(sh);
+		    responseTrying.addHeader(serverHeader);
+		    
+		    logger.debug(responseTrying);
+		    
+			serverTransaction.sendResponse(responseTrying);	
+		} catch (Exception ex) {
+			logger.error(ex.toString());
+			ex.printStackTrace();
+		}
 	}
 
 	@Override

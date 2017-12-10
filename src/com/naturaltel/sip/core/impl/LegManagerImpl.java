@@ -75,10 +75,9 @@ public class LegManagerImpl implements LegManager {
 
 		try {
 			//Get oriRequest Data
-//			String ipAddress = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getIPAddress();
-//			int port = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getPort();
-			String ipAddress = "192.168.31.106";
-			int port = 5082;
+			String ipAddress = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getIPAddress();
+			int port = sipProvider.getListeningPoint(listeningPointConfig.localTransport).getPort();
+			transport = sipProvider.getListeningPoint(transport).getTransport();
 			logger.debug("ipAddress=" + ipAddress + ", port=" + port);
 			ViaHeader oriViaH = (ViaHeader) oriRequest.getHeader(ViaHeader.NAME);
 			logger.debug("oriViaH.getHost=" + oriViaH.getHost() + ", oriViaH.getPort()=" + oriViaH.getPort());
@@ -103,7 +102,7 @@ public class LegManagerImpl implements LegManager {
 			String fromName = formSipURI.getUser();
 			Address fromNameAddress = addressFactory.createAddress(formSipURI);
 			//TODO 產生 Tag
-			String tag = "p65545t1476958110m606352c32067s1_461891541-248714762";
+			String tag = "p65545t1476958110m606352c32067s1_461891541-248714763";
 			FromHeader fromHeader = headerFactory.createFromHeader(fromNameAddress, tag);
 
 			// create To Header
