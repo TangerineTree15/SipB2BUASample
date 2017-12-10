@@ -9,10 +9,14 @@ import javax.sip.SipFactory;
 import javax.sip.SipProvider;
 import javax.sip.SipStack;
 
+import org.apache.log4j.Appender;
 import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.DailyRollingFileAppender;
+import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.apache.log4j.SimpleLayout;
 
 import com.naturaltel.sip.component.ListeningPointConfig;
 import com.naturaltel.sip.core.manager.ConfigurationManager;
@@ -66,15 +70,39 @@ public class SipStackManagerImpl implements SipStackManager {
 	
 	//--- private method ----------------------------------------------------------------------------
 	private void createAppender() {
-		//create appender
-		ConsoleAppender console = new ConsoleAppender(); 
-		//configure the appender
-		String PATTERN = "%d [%p|%c|%C{1}][%L] %m%n";
-		console.setLayout(new PatternLayout(PATTERN)); 
-		console.setThreshold(Level.DEBUG);
-		console.activateOptions();
-		//add appender to any Logger (here is root)
-		Logger.getRootLogger().addAppender(console);	//TODO 加寫入 file
+		try {
+			//create appender
+			ConsoleAppender console = new ConsoleAppender(); 
+			//configure the appender
+			String PATTERN = "%d [%p|%c|%C{1}][%L] %m%n";
+			console.setLayout(new PatternLayout(PATTERN)); 
+			console.setThreshold(Level.DEBUG);
+			console.activateOptions();
+			//add appender to any Logger (here is root)
+			Logger.getRootLogger().addAppender(console);	//TODO 加寫入 file
+		} catch(Exception e) {
+			
+		}
+		try {
+	        // creates pattern layout
+	        PatternLayout layout = new PatternLayout();
+	        String conversionPattern = "%d [%p|%c|%C{1}][%L] %m%n";
+	        layout.setConversionPattern(conversionPattern);
+	 
+	        // creates daily rolling file appender
+	        DailyRollingFileAppender rollingAppender = new DailyRollingFileAppender();
+	        rollingAppender.setFile("SB.log");
+	        rollingAppender.setDatePattern("'.'yyyy-MM-dd");
+	        rollingAppender.setLayout(layout);
+	        rollingAppender.activateOptions();
+	 
+	        // configures the root logger
+	        Logger rootLogger = Logger.getRootLogger();
+	        rootLogger.setLevel(Level.DEBUG);
+	        rootLogger.addAppender(rollingAppender);
+		} catch(Exception e) {
+			
+		}
 		
 	}
 	private SipStack createSipStack(String stackName) {
